@@ -1,8 +1,37 @@
 # AccessCentral v2.0
 
-Applicazione desktop completa per la gestione di credenziali, servizi, risorse e contatti aziendali.
+Applicazione desktop completa per la gestione di credenziali, servizi, risorse e contatti aziendali con **sistema di sicurezza avanzato** e **backup automatico**.
 
 ## 🌟 Caratteristiche Principali
+
+### 🔐 Sicurezza (NEW v2.0)
+- **Master Password**: Protezione accesso all'applicazione con autenticazione
+- **Crittografia AES**: Tutte le password vengono criptate con Fernet (AES-256)
+- **Generatore Password**: Crea password sicure con opzioni personalizzabili
+- **Sistema Recupero**: Codice di recupero per reset password dimenticata
+- **3 Tentativi**: Limite di tentativi di accesso con blocco automatico
+- **PBKDF2HMAC**: Derivazione chiavi con 100.000 iterazioni
+
+### 💾 Backup e Ripristino (NEW v2.0)
+- **Backup Automatico**: Backup programmato del database
+- **Gestione Completa**: Crea, ripristina, esporta ed elimina backup
+- **Configurabile**: Imposta intervallo e numero massimo di backup
+- **Pulizia Automatica**: Rimozione backup obsoleti
+- **Backup di Sicurezza**: Creazione automatica prima del ripristino
+
+### 🔍 Ricerca Globale (NEW v2.0)
+- **Barra Ricerca**: Ricerca in tempo reale
+- **Multi-Entità**: Cerca tra clienti, servizi e credenziali
+- **Smart Filter**: Mostra tutti i servizi quando si filtra per cliente
+- **Evidenziazione**: Risultati evidenziati nella struttura ad albero
+
+### 🎨 Personalizzazione (NEW v2.0)
+- **3 Temi Disponibili**:
+  - **Chiaro (Microsoft-style)**: Design pulito e professionale (default)
+  - **Dark**: Tema scuro per ridurre affaticamento visivo
+  - **Colorato**: Tema vivace con accenti colorati
+- **Menu Temi**: Cambio tema al volo dal menu Visualizza
+- **Preferenze Salvate**: Il tema scelto viene ricordato
 
 ### Gestione Clienti Avanzata
 - **Organizzazione Clienti**: Gestisci i tuoi clienti con descrizioni dettagliate
@@ -56,27 +85,68 @@ clienti (1) ----< (N) servizi
 servizi (1) ----< (N) credenziali
 ```
 
-## Architettura
+## 🏗️ Architettura
 
 Il progetto segue il pattern **MVC (Model-View-Controller)**:
 
 ```
 CredenzialiSuite/
-├── main.py                 # Entry point dell'applicazione
-├── requirements.txt        # Dipendenze Python
-├── models/                 # Modelli dati (Database)
-│   ├── database.py        # Gestione database SQLite
-│   ├── cliente.py         # Modello Cliente
-│   ├── servizio.py        # Modello Servizio
-│   └── credenziale.py     # Modello Credenziale
-├── views/                  # Interfaccia grafica (PyQt5)
-│   └── main_window.py     # Finestra principale e dialogs
-├── controllers/            # Logica business
-│   ├── cliente_controller.py
-│   └── credenziale_controller.py
-└── utils/                  # Utility
-    ├── vpn_launcher.py    # Gestione VPN
-    └── rdp_launcher.py    # Gestione connessioni RDP
+├── main.py                      # Entry point con sistema autenticazione
+├── requirements.txt             # Dipendenze Python
+├── .gitignore                   # Esclude file sensibili
+│
+├── models/                      # Modelli dati (Database)
+│   ├── database.py             # Gestione database SQLite
+│   ├── cliente.py              # Modello Cliente
+│   ├── servizio.py             # Modello Servizio
+│   ├── credenziale.py          # Modello Credenziale
+│   ├── pm.py                   # Modello Project Manager
+│   ├── consulente.py           # Modello Consulente
+│   └── contatto.py             # Modello Contatto
+│
+├── views/                       # Interfaccia grafica (PyQt5)
+│   ├── main_window.py          # Finestra principale e dialogs
+│   ├── cliente_dialogs.py      # Dialog gestione clienti
+│   ├── risorse_dialogs.py      # Dialog PM/Consulenti/Contatti
+│   ├── security_dialogs.py     # 🆕 Dialog sicurezza (master password, generatore, recovery)
+│   └── backup_dialog.py        # 🆕 Dialog gestione backup
+│
+├── controllers/                 # Logica business
+│   ├── cliente_controller.py   # Controller clienti/servizi
+│   ├── credenziale_controller.py # Controller credenziali (con crittografia)
+│   └── risorse_controller.py   # Controller PM/Consulenti/Contatti
+│
+└── utils/                       # Utility
+    ├── vpn_launcher.py         # Gestione VPN
+    ├── rdp_launcher.py         # Gestione connessioni RDP
+    ├── crypto_manager.py       # 🆕 Crittografia password (Fernet, PBKDF2, SHA256)
+    └── backup_manager.py       # 🆕 Backup automatico e gestione
+
+File Configurazione:
+├── security_config.json         # Salt + hash master password + recovery code
+├── backup_config.json          # Config backup automatico
+├── config.json                 # Preferenze UI (tema selezionato)
+└── credenziali_suite.db        # Database SQLite con password criptate
+```
+
+### Flusso Autenticazione (v2.0)
+
+```
+1. Avvio app → main.py
+2. Verifica prima esecuzione
+3. Se prima volta:
+   ├── Master Password Dialog
+   ├── Genera salt + deriva chiave
+   ├── Genera codice recupero
+   └── Salva in security_config.json
+4. Se esistente:
+   ├── Carica security_config.json
+   ├── Master Password Dialog (3 tentativi)
+   ├── Verifica hash password
+   ├── Se ≥3 errori → Recovery Dialog
+   └── Inizializza CryptoManager
+5. Verifica backup necessario
+6. Avvia MainWindow
 ```
 
 ## Installazione
@@ -95,12 +165,104 @@ CredenzialiSuite/
 pip install -r requirements.txt
 ```
 
+**Dipendenze principali:**
+- PyQt5 >= 5.15
+- cryptography >= 41.0.0 (per crittografia password)
+
 3. Avvia l'applicazione:
 ```bash
 python main.py
 ```
 
+### Prima Configurazione (v2.0)
+
+Al primo avvio, ti verrà chiesto di:
+
+1. **Impostare una Master Password**
+   - Minimo 6 caratteri
+   - Protegge l'accesso all'applicazione
+   - Conferma la password
+
+2. **Salvare il Codice di Recupero**
+   - Formato: XXXX-XXXX-XXXX-XXXX
+   - ⚠️ **IMPORTANTE**: Salvalo in un posto sicuro!
+   - Necessario per recuperare accesso se dimentichi la password
+   - Verrà mostrato **solo una volta**
+
+3. **Configurare Backup Automatico** (opzionale)
+   - Dal menu `Backup → Gestisci Backup`
+   - Imposta intervallo (default: 1 giorno)
+   - Numero massimo backup (default: 10)
+
 ## Utilizzo
+
+### Accesso all'Applicazione (v2.0)
+
+1. Inserisci la **Master Password** al login
+2. Hai **3 tentativi** disponibili
+3. Se dimentichi la password:
+   - Clicca "Sì" quando richiesto
+   - Inserisci il **Codice di Recupero**
+   - Imposta una nuova password
+
+### Ricerca Globale (v2.0)
+
+1. Usa la **barra di ricerca** in alto
+2. Digita almeno 2 caratteri
+3. La ricerca filtra in tempo reale:
+   - **Clienti**: Per nome
+   - **Servizi**: Per nome, tipo o link
+   - **Credenziali**: Per username, host o note
+4. Filtrando per cliente vengono mostrati **tutti i suoi servizi**
+
+### Gestione Temi (v2.0)
+
+1. Menu **Visualizza → Temi**
+2. Scegli tra:
+   - **Tema Chiaro** (Microsoft-style)
+   - **Tema Dark**
+   - **Tema Colorato**
+3. Il tema viene salvato automaticamente
+
+### Sicurezza (v2.0)
+
+**Generatore Password:**
+1. Menu **Sicurezza → Genera Password**
+2. Imposta:
+   - Lunghezza (8-64 caratteri)
+   - Maiuscole, Numeri, Simboli
+3. Clicca **Genera** per nuova password
+4. **Copia** o **Usa Password**
+
+**Cambio Master Password:**
+1. Menu **Sicurezza → Cambia Master Password**
+2. Inserisci password corrente
+3. Inserisci nuova password (minimo 6 caratteri)
+4. Riavvia l'applicazione
+
+### Backup (v2.0)
+
+**Backup Manuale:**
+1. Menu **Backup → Crea Backup**
+2. Il backup viene salvato in `backups/`
+
+**Gestione Backup:**
+1. Menu **Backup → Gestisci Backup**
+2. Visualizza lista backup con data/ora/dimensione
+3. Azioni disponibili:
+   - **Ripristina**: Ripristina database (backup automatico prima)
+   - **Elimina**: Rimuovi backup obsoleti
+   - **Crea Nuovo**: Backup manuale immediato
+
+**Esporta Backup:**
+1. Menu **Backup → Esporta Backup**
+2. Scegli destinazione
+3. Salva copia del database
+
+**Configurazione:**
+- Abilita/Disabilita backup automatico
+- Imposta intervallo giorni (default: 1)
+- Numero massimo backup (default: 10)
 
 ### Gestione Clienti
 
@@ -138,29 +300,82 @@ python main.py
 - **Connetti RDP**: Seleziona una credenziale di un servizio RDP e clicca **"🖥️ Connetti RDP"**
 - **Menu Contestuale**: Click destro su clienti/servizi per azioni rapide
 
-## Sicurezza
+## 🔒 Sicurezza
+
+### Implementazioni v2.0
+
+✅ **IMPLEMENTATE**:
+
+- ✅ **Crittografia AES-256**: Tutte le password vengono criptate con Fernet
+- ✅ **Master Password**: Autenticazione obbligatoria con hash SHA-256
+- ✅ **Derivazione Chiavi**: PBKDF2HMAC con 100.000 iterazioni
+- ✅ **Sistema Recupero**: Codice di recupero per password dimenticata
+- ✅ **Limite Tentativi**: Blocco dopo 3 tentativi falliti
+- ✅ **Generatore Password**: Crea password sicure personalizzabili
+- ✅ **Backup Automatico**: Protezione dati con backup programmati
+
+### Architettura Sicurezza
+
+**Crittografia Password:**
+```
+Password in chiaro → Fernet.encrypt() → Base64 → Database
+```
+
+**Master Password:**
+```
+Password utente → PBKDF2HMAC (100k iter) → Chiave AES → Fernet cipher
+Password utente → SHA-256 → Hash salvato in security_config.json
+```
+
+**Codice Recupero:**
+```
+16 caratteri alfanumerici → SHA-256 → Hash salvato in security_config.json
+```
+
+### Best Practices
 
 ⚠️ **IMPORTANTE**:
 
-- Il database SQLite salva le password in **chiaro**
-- Per un ambiente di produzione, considera di implementare la crittografia
-- Il file database (`credenziali_suite.db`) contiene dati sensibili
-- Non condividere il file database
-- Considera backup regolari del database
+- 🔑 **Master Password**: Usa una password forte e memorabile
+- 📝 **Codice Recupero**: Salvalo in un posto sicuro (cassaforte, password manager)
+- 💾 **Backup Regolari**: Configura backup automatico giornaliero
+- 🔒 **File Sensibili**: Non condividere `credenziali_suite.db` e `security_config.json`
+- 🚫 **Git**: I file sensibili sono esclusi da .gitignore
+- 🔄 **Password Esistenti**: Vengono criptate al primo salvataggio dopo aggiornamento
 
-### Miglioramenti Futuri per la Sicurezza
+### File Sensibili
 
-- Implementare crittografia AES per le password
-- Aggiungere autenticazione con password master
-- Implementare auto-lock dopo inattività
-- Aggiungere logging delle attività
+```
+📁 CredenzialiSuite/
+├── credenziali_suite.db      # Database criptato (gitignored)
+├── security_config.json      # Config sicurezza (gitignored)
+├── backup_config.json        # Config backup (gitignored)
+└── backups/                  # Directory backup (gitignored)
+    ├── accesscentral_backup_20260210_143022.db
+    └── ...
+```
 
-## Tecnologie Utilizzate
+## 🛠️ Tecnologie Utilizzate
 
-- **Python 3**: Linguaggio di programmazione
-- **PyQt5**: Framework GUI
-- **SQLite**: Database embedded
-- **MVC Pattern**: Architettura del software
+- **Python 3.8+**: Linguaggio di programmazione
+- **PyQt5 5.15+**: Framework GUI avanzato
+- **SQLite 3**: Database embedded relazionale
+- **cryptography**: Libreria crittografia (Fernet, PBKDF2HMAC) 🆕
+- **MVC Pattern**: Architettura software modulare
+
+### Dipendenze Chiave
+
+```python
+PyQt5>=5.15.0                  # GUI Framework
+cryptography>=41.0.0           # Crittografia AES-256
+```
+
+### Algoritmi Crittografici (v2.0)
+
+- **Fernet**: Crittografia simmetrica (AES-128 in CBC mode)
+- **PBKDF2-HMAC-SHA256**: Key derivation (100.000 iterazioni)
+- **SHA-256**: Hashing master password e recovery code
+- **Base64**: Encoding chiavi e dati criptati
 
 ## Struttura Database
 
@@ -190,7 +405,61 @@ python main.py
 - `note`: Note
 - Timestamps: `creato_il`, `modificato_il`
 
-## Licenza
+## 📝 Changelog
+
+### v2.0.0 (Febbraio 2026)
+
+**🔐 Sicurezza**
+- ✨ Sistema master password con autenticazione obbligatoria
+- ✨ Crittografia AES-256 per tutte le password salvate
+- ✨ Generatore password sicure con opzioni personalizzabili
+- ✨ Sistema recupero password con codice di sicurezza (16 caratteri)
+- ✨ Limite 3 tentativi con possibilità di recupero
+- 🔧 PBKDF2HMAC con 100.000 iterazioni per derivazione chiavi
+- 🔧 SHA-256 per hashing master password
+
+**💾 Backup e Ripristino**
+- ✨ Sistema backup automatico configurabile
+- ✨ Gestione completa backup (crea, ripristina, esporta, elimina)
+- ✨ Dialog gestione con tabella backup e dimensioni
+- 🔧 Pulizia automatica backup obsoleti
+- 🔧 Backup di sicurezza prima del ripristino
+- 🔧 Configurazione intervallo e numero massimo backup
+
+**🔍 Ricerca e UX**
+- ✨ Barra ricerca globale in tempo reale
+- ✨ Ricerca multi-entità (clienti, servizi, credenziali)
+- ✨ Smart filter: mostra tutti i servizi quando si cerca un cliente
+- 🔧 Ricerca case-insensitive con minimo 2 caratteri
+
+**🎨 Personalizzazione**
+- ✨ 3 temi disponibili (Chiaro Microsoft-style, Dark, Colorato)
+- ✨ Menu selezione tema con persistenza preferenze
+- 🔧 Layout VPN ridisegnato in griglia 2x2
+- 🔧 Stile più professionale e moderno
+
+**🐛 Bug Fix**
+- 🔧 Correzione apertura directory VPN in Esplora Risorse
+- 🔧 Fix verifica password corretta (non accettava più password errate)
+- 🔧 Correzione attributi nel sistema di ricerca (url→link, email→host)
+- 🔧 Fix TypeError nella selezione elementi ricerca (tuple→dict)
+
+**📦 File Aggiunti**
+- `utils/crypto_manager.py`: Gestione crittografia completa
+- `utils/backup_manager.py`: Gestione backup automatici
+- `views/security_dialogs.py`: Dialog sicurezza (master password, generatore, recovery)
+- `views/backup_dialog.py`: Interfaccia gestione backup
+
+**🔧 Dipendenze**
+- ➕ `cryptography>=41.0.0`: Richiesta per funzionalità crittografia
+
+### v1.x (Precedenti)
+- Gestione clienti, servizi, credenziali
+- Integrazione VPN e RDP
+- Gestione PM, consulenti, contatti
+- Database SQLite relazionale
+
+## 📋 Licenza
 
 Questo progetto è fornito "as-is" per uso personale o aziendale.
 
