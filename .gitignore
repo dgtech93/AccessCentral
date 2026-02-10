@@ -68,3 +68,14 @@ config.json
 
 # Backup directory
 backups/
+
+# PyInstaller build files
+build/
+dist/
+*.spec
+version_info.txt
+installer_AccessCentral_*/
+AccessCentral_v*_Windows_Installer.zip
+
+# Installer output
+installer_output/

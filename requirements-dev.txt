@@ -1,0 +1,16 @@
+# AccessCentral v2.0 - Development Requirements
+# Installa con: pip install -r requirements-dev.txt
+
+# Dipendenze principali
+-r requirements.txt
+
+# Build & Packaging
+pyinstaller>=5.13.0
+
+# Testing (opzionale)
+pytest>=7.4.0
+pytest-qt>=4.2.0
+
+# Code Quality (opzionale)
+pylint>=2.17.0
+black>=23.7.0

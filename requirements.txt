@@ -1,5 +1,11 @@
-# AccessCentral - Requirements
+# AccessCentral v2.0 - Requirements
 
+# GUI Framework
 PyQt5>=5.15.9
+
+# Sicurezza e Crittografia
+cryptography>=41.0.0
+
+# Data handling (per import/export)
 pandas>=2.0.0
 openpyxl>=3.1.0
