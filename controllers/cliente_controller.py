@@ -75,7 +75,10 @@ class ClienteController:
     
     def modifica_cliente(self, cliente_id: int, nome: str, 
                         descrizione: str = "", vpn_exe_path: str = "",
-                        vpn_windows_name: str = "", pm_id: Optional[int] = None) -> bool:
+                        vpn_windows_name: str = "", pm_id: Optional[int] = None,
+                        vpn_server: str = "", vpn_username: str = "",
+                        vpn_password: str = "", vpn_port: int = 0,
+                        vpn_config_dir: str = "", vpn_procedure_dir: str = "") -> bool:
         """
         Modifica un cliente esistente
         
@@ -86,6 +89,12 @@ class ClienteController:
             vpn_exe_path: Nuovo percorso VPN exe
             vpn_windows_name: Nuovo nome VPN Windows
             pm_id: ID del PM di riferimento
+            vpn_server: Server VPN
+            vpn_username: Username VPN
+            vpn_password: Password VPN
+            vpn_port: Porta VPN
+            vpn_config_dir: Directory file configurazione VPN
+            vpn_procedure_dir: Directory procedura VPN
             
         Returns:
             True se la modifica è riuscita
@@ -104,7 +113,9 @@ class ClienteController:
             raise ValueError(f"Esiste già un altro cliente con nome '{nome}'")
         
         return Cliente.update(self.db, cliente_id, nome, descrizione,
-                            vpn_exe_path, vpn_windows_name, pm_id)
+                            vpn_exe_path, vpn_windows_name, pm_id,
+                            vpn_server, vpn_username, vpn_password,
+                            vpn_port, vpn_config_dir, vpn_procedure_dir)
     
     def elimina_cliente(self, cliente_id: int) -> bool:
         """

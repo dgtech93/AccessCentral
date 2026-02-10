@@ -60,3 +60,11 @@ temp_rdp_*.rdp
 *.temp
 *.bak
 *.backup
+
+# Configuration files with sensitive data
+security_config.json
+backup_config.json
+config.json
+
+# Backup directory
+backups/

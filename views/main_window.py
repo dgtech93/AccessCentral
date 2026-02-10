@@ -2,13 +2,15 @@
 Finestra principale dell'applicazione
 """
 
+from datetime import datetime
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QTreeWidget, QTreeWidgetItem, QPushButton, QLabel,
                              QMessageBox, QInputDialog, QDialog, QFormLayout,
                              QLineEdit, QTextEdit, QComboBox, QSpinBox,
                              QFileDialog, QMenu, QAction, QSplitter, QTabWidget,
                              QTableWidget, QTableWidgetItem, QHeaderView, QMenuBar,
-                             QTextBrowser, QListWidget, QListWidgetItem)
+                             QTextBrowser, QListWidget, QListWidgetItem, QFrame, QGridLayout,
+                             QApplication, QCheckBox)
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QIcon, QDesktopServices
 from models.database import DatabaseManager
@@ -28,21 +30,23 @@ from utils.rdp_launcher import RDPLauncher
 class MainWindow(QMainWindow):
     """Finestra principale dell'applicazione"""
     
-    def __init__(self):
+    def __init__(self, crypto_manager=None, backup_manager=None):
         super().__init__()
         self.db = DatabaseManager()
         self.cliente_controller = ClienteController(self.db)
-        self.credenziale_controller = CredenzialeController(self.db)
+        self.credenziale_controller = CredenzialeController(self.db, crypto_manager)
         self.risorse_controller = RisorseController(self.db)
         self.vpn_launcher = VPNLauncher()
         self.rdp_launcher = RDPLauncher()
+        self.crypto_manager = crypto_manager
+        self.backup_manager = backup_manager
         
         self.init_ui()
         self.carica_dati()
     
     def init_ui(self):
         """Inizializza l'interfaccia utente"""
-        self.setWindowTitle("AccessCentral - Gestione Accessi")
+        self.setWindowTitle("AccessCentral v2.0 - Gestione Accessi")
         self.setGeometry(100, 100, 1400, 800)
         
         # Applica stylesheet globale
@@ -70,6 +74,15 @@ class MainWindow(QMainWindow):
         # Titolo e pulsanti clienti
         titolo_clienti = QLabel("<h2 style='color: #1976D2; margin: 0;'>📋 Clienti</h2>")
         left_layout.addWidget(titolo_clienti)
+        
+        # Barra di ricerca globale
+        search_layout = QHBoxLayout()
+        self.txt_ricerca = QLineEdit()
+        self.txt_ricerca.setPlaceholderText("🔍 Ricerca globale (clienti, servizi, credenziali)...")
+        self.txt_ricerca.textChanged.connect(self.ricerca_globale)
+        self.txt_ricerca.setClearButtonEnabled(True)
+        search_layout.addWidget(self.txt_ricerca)
+        left_layout.addWidget(self.txt_ricerca)
         left_layout.addSpacing(10)
         
         btn_layout_clienti = QHBoxLayout()
@@ -109,7 +122,6 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(15, 15, 15, 15)
         
         # Informazioni cliente/servizio con stile e VPN cards
-        from PyQt5.QtWidgets import QFrame
         info_frame = QFrame()
         info_frame.setStyleSheet("""
             QFrame {
@@ -131,48 +143,101 @@ class MainWindow(QMainWindow):
         
         main_info_layout.addSpacing(15)
         
-        # Container VPN compatto a destra
+        # Container VPN con design moderno
         vpn_container = QFrame()
-        vpn_container.setMaximumWidth(180)
+        vpn_container.setMaximumWidth(220)
         vpn_container.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #E1F5FE, stop:0.5 #E1F5FE, stop:0.5 #E8F5E9, stop:1 #E8F5E9);
-                border: 2px solid #1976D2;
-                border-radius: 6px;
-                padding: 8px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #F8F9FA, stop:1 #E3F2FD);
+                border: 2px solid #0288D1;
+                border-radius: 12px;
+                padding: 12px;
             }
         """)
-        vpn_layout = QVBoxLayout(vpn_container)
-        vpn_layout.setSpacing(3)
-        vpn_layout.setContentsMargins(5, 5, 5, 5)
+        vpn_main_layout = QVBoxLayout(vpn_container)
+        vpn_main_layout.setSpacing(10)
+        vpn_main_layout.setContentsMargins(10, 10, 10, 10)
         
-        # Titolo VPN
-        vpn_title = QLabel("<b style='color: #1976D2;'>🔌 VPN</b>")
+        # Titolo VPN con stile migliorato
+        vpn_title = QLabel("<b style='color: #0277BD; font-size: 13px;'>🔌 CONNESSIONI VPN</b>")
         vpn_title.setAlignment(Qt.AlignCenter)
-        vpn_layout.addWidget(vpn_title)
+        vpn_main_layout.addWidget(vpn_title)
         
-        # Separatore
-        sep_line = QFrame()
-        sep_line.setFrameShape(QFrame.HLine)
-        sep_line.setStyleSheet("background-color: #1976D2; max-height: 1px;")
-        vpn_layout.addWidget(sep_line)
+        # Griglia per i bottoni VPN (2x2)
+        vpn_grid = QGridLayout()
+        vpn_grid.setSpacing(8)
         
         # Bottone VPN EXE
-        self.btn_vpn_exe = QPushButton("💻 VPN EXE")
-        self.btn_vpn_exe.setObjectName("btn_action")
-        self.btn_vpn_exe.setMaximumHeight(32)
+        self.btn_vpn_exe = QPushButton("💻\nVPN EXE")
+        self.btn_vpn_exe.setObjectName("btn_vpn_custom")
+        self.btn_vpn_exe.setMinimumHeight(55)
+        self.btn_vpn_exe.setStyleSheet("""
+            QPushButton {
+                background-color: #0288D1;
+                color: white;
+                font-weight: bold;
+                border-radius: 8px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #0277BD;
+            }
+            QPushButton:disabled {
+                background-color: #B0BEC5;
+            }
+        """)
         self.btn_vpn_exe.clicked.connect(self.lancia_vpn_exe)
         self.btn_vpn_exe.setEnabled(False)
-        vpn_layout.addWidget(self.btn_vpn_exe)
+        vpn_grid.addWidget(self.btn_vpn_exe, 0, 0)
         
         # Bottone VPN Windows
-        self.btn_vpn_windows = QPushButton("🪟 VPN Win")
-        self.btn_vpn_windows.setObjectName("btn_action")
-        self.btn_vpn_windows.setMaximumHeight(32)
+        self.btn_vpn_windows = QPushButton("🪟\nVPN Win")
+        self.btn_vpn_windows.setObjectName("btn_vpn_custom")
+        self.btn_vpn_windows.setMinimumHeight(55)
+        self.btn_vpn_windows.setStyleSheet("""
+            QPushButton {
+                background-color: #00897B;
+                color: white;
+                font-weight: bold;
+                border-radius: 8px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #00796B;
+            }
+            QPushButton:disabled {
+                background-color: #B0BEC5;
+            }
+        """)
         self.btn_vpn_windows.clicked.connect(self.lancia_vpn_windows)
         self.btn_vpn_windows.setEnabled(False)
-        vpn_layout.addWidget(self.btn_vpn_windows)
+        vpn_grid.addWidget(self.btn_vpn_windows, 0, 1)
+        
+        # Bottone Accessi VPN (occupa tutta la larghezza sotto)
+        self.btn_accessi_vpn = QPushButton("🔐 Accessi VPN")
+        self.btn_accessi_vpn.setObjectName("btn_vpn_custom")
+        self.btn_accessi_vpn.setMinimumHeight(45)
+        self.btn_accessi_vpn.setStyleSheet("""
+            QPushButton {
+                background-color: #F57C00;
+                color: white;
+                font-weight: bold;
+                border-radius: 8px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #EF6C00;
+            }
+            QPushButton:disabled {
+                background-color: #B0BEC5;
+            }
+        """)
+        self.btn_accessi_vpn.clicked.connect(self.gestisci_accessi_vpn)
+        self.btn_accessi_vpn.setEnabled(False)
+        vpn_grid.addWidget(self.btn_accessi_vpn, 1, 0, 1, 2)
+        
+        vpn_main_layout.addLayout(vpn_grid)
         
         main_info_layout.addWidget(vpn_container)
         
@@ -542,6 +607,40 @@ class MainWindow(QMainWindow):
         azione_import.triggered.connect(self.importa_dati)
         menu_file.addAction(azione_import)
         
+        # Menu Sicurezza
+        menu_sicurezza = menubar.addMenu("Sicurezza")
+        
+        azione_genera_password = QAction("🎲 Genera Password", self)
+        azione_genera_password.triggered.connect(self.mostra_generatore_password)
+        menu_sicurezza.addAction(azione_genera_password)
+        
+        menu_sicurezza.addSeparator()
+        
+        azione_cambia_master = QAction("🔑 Cambia Master Password", self)
+        azione_cambia_master.triggered.connect(self.cambia_master_password)
+        menu_sicurezza.addAction(azione_cambia_master)
+        
+        # Menu Backup
+        menu_backup = menubar.addMenu("Backup")
+        
+        azione_backup_ora = QAction("💾 Crea Backup Ora", self)
+        azione_backup_ora.triggered.connect(self.crea_backup_manuale)
+        menu_backup.addAction(azione_backup_ora)
+        
+        azione_lista_backup = QAction("📋 Gestisci Backup", self)
+        azione_lista_backup.triggered.connect(self.gestisci_backup)
+        menu_backup.addAction(azione_lista_backup)
+        
+        menu_backup.addSeparator()
+        
+        azione_esporta_backup = QAction("📤 Esporta Backup...", self)
+        azione_esporta_backup.triggered.connect(self.esporta_backup)
+        menu_backup.addAction(azione_esporta_backup)
+        
+        azione_importa_backup = QAction("📥 Ripristina Backup...", self)
+        azione_importa_backup.triggered.connect(self.ripristina_backup)
+        menu_backup.addAction(azione_importa_backup)
+        
         # Menu Risorse
         menu_risorse = menubar.addMenu("Risorse")
         
@@ -868,6 +967,7 @@ class MainWindow(QMainWindow):
         self.lbl_info.setText(info)
         self.btn_vpn_exe.setEnabled(has_vpn_exe)
         self.btn_vpn_windows.setEnabled(has_vpn_win)
+        self.btn_accessi_vpn.setEnabled(has_vpn_exe or has_vpn_win)
     
     def mostra_info_servizio(self):
         """Mostra le informazioni del servizio selezionato"""
@@ -1013,7 +1113,6 @@ class MainWindow(QMainWindow):
         cred = self.credenziale_controller.ottieni_credenziale(credenziale_id)
         
         if cred:
-            from PyQt5.QtWidgets import QApplication
             clipboard = QApplication.clipboard()
             
             # Copia campo in base alla colonna cliccata
@@ -1371,6 +1470,38 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Errore Critico", 
                                f"Errore durante il lancio della VPN:\n{str(e)}")
+    
+    def gestisci_accessi_vpn(self):
+        """Apre il dialog per gestire i dettagli di accesso VPN"""
+        try:
+            if not self.cliente_corrente:
+                QMessageBox.warning(self, "Attenzione", "Nessun cliente selezionato")
+                return
+            
+            # Verifica se ci sono già informazioni VPN salvate
+            has_vpn_info = any([
+                self.cliente_corrente.vpn_server,
+                self.cliente_corrente.vpn_username,
+                self.cliente_corrente.vpn_port,
+                self.cliente_corrente.vpn_config_dir,
+                self.cliente_corrente.vpn_procedure_dir
+            ])
+            
+            if has_vpn_info:
+                # Apri dialog di dettaglio
+                dialog = AccessiVPNDetailDialog(self, self.cliente_corrente, self.cliente_controller)
+            else:
+                # Apri dialog di compilazione
+                dialog = AccessiVPNEditDialog(self, self.cliente_corrente, self.cliente_controller)
+            
+            if dialog.exec_() == QDialog.Accepted:
+                # Ricarica il cliente aggiornato
+                self.cliente_corrente = self.cliente_controller.ottieni_cliente(self.cliente_corrente.id)
+                self.mostra_info_cliente()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Errore Critico", 
+                               f"Errore durante la gestione accessi VPN:\n{str(e)}")
 
     
     def apri_link_servizio(self):
@@ -1507,6 +1638,272 @@ class MainWindow(QMainWindow):
             elif azione == azione_elimina:
                 self.servizio_corrente = self.credenziale_controller.ottieni_servizio(data['id'])
                 self.elimina_servizio()
+    
+    # === FUNZIONALITÀ DI RICERCA GLOBALE ===
+    
+    def ricerca_globale(self, testo):
+        """
+        Ricerca globale tra clienti, servizi e credenziali
+        """
+        if not testo or len(testo) < 2:
+            # Se il testo è vuoto o troppo corto, mostra tutti i clienti
+            self.carica_dati()
+            return
+        
+        testo = testo.lower()
+        
+        # Pulisci la tree
+        self.tree_clienti.clear()
+        
+        # Cerca tra i clienti
+        clienti = self.cliente_controller.ottieni_tutti_clienti()
+        clienti_trovati = []
+        
+        for cliente in clienti:
+            match_cliente = False
+            cliente_item = None
+            match_nome_cliente = False
+            
+            # Cerca nel nome cliente
+            if testo in cliente.nome.lower():
+                match_cliente = True
+                match_nome_cliente = True
+                cliente_item = QTreeWidgetItem([f"👤 {cliente.nome}"])
+                cliente_item.setData(0, Qt.UserRole, {'tipo': 'cliente', 'id': cliente.id})
+                
+            # Cerca nei servizi del cliente
+            servizi = self.cliente_controller.ottieni_servizi_cliente(cliente.id)
+            servizi_matchati = []
+            
+            if match_nome_cliente:
+                # Se il nome cliente matcha, mostra TUTTI i servizi
+                servizi_matchati = servizi
+            else:
+                # Altrimenti filtra solo i servizi che matchano
+                for servizio in servizi:
+                    if (testo in servizio.nome.lower() or 
+                        testo in servizio.tipo.lower() or 
+                        (servizio.link and testo in servizio.link.lower())):
+                        servizi_matchati.append(servizio)
+                        match_cliente = True
+            
+            # Cerca nelle credenziali
+            credenziali = self.credenziale_controller.ottieni_credenziali_servizio(cliente.id)
+            credenziali_matchate = []
+            
+            for cred in credenziali:
+                if (testo in cred.username.lower() or 
+                    (cred.host and testo in cred.host.lower()) or
+                    (cred.note and testo in cred.note.lower())):
+                    credenziali_matchate.append(cred)
+                    match_cliente = True
+            
+            # Se c'è almeno una corrispondenza, aggiungi il cliente
+            if match_cliente:
+                if not cliente_item:
+                    cliente_item = QTreeWidgetItem([f"👤 {cliente.nome}"])
+                    cliente_item.setData(0, Qt.UserRole, {'tipo': 'cliente', 'id': cliente.id})
+                
+                # Aggiungi servizi matchati
+                for servizio in servizi_matchati:
+                    icona = self.get_icona_servizio(servizio.tipo)
+                    servizio_item = QTreeWidgetItem([f"{icona} {servizio.nome}"])
+                    servizio_item.setData(0, Qt.UserRole, {'tipo': 'servizio', 'id': servizio.id, 'cliente_id': cliente.id})
+                    cliente_item.addChild(servizio_item)
+                
+                # Se ci sono credenziali matchate, mostra un indicatore
+                if credenziali_matchate:
+                    cred_item = QTreeWidgetItem([f"🔑 {len(credenziali_matchate)} credenziali trovate"])
+                    cliente_item.addChild(cred_item)
+                
+                self.tree_clienti.addTopLevelItem(cliente_item)
+                cliente_item.setExpanded(True)
+        
+        # Se nessun risultato
+        if self.tree_clienti.topLevelItemCount() == 0:
+            item = QTreeWidgetItem([f"❌ Nessun risultato per '{testo}'"])
+            self.tree_clienti.addTopLevelItem(item)
+    
+    # === FUNZIONALITÀ DI SICUREZZA ===
+    
+    def mostra_generatore_password(self):
+        """Mostra il dialog per generare password sicure"""
+        from views.security_dialogs import GeneratorePasswordDialog
+        
+        dialog = GeneratorePasswordDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            password = dialog.get_password()
+            QApplication.clipboard().setText(password)
+            QMessageBox.information(
+                self, "Password Generata",
+                f"Password copiata negli appunti:\n{password}"
+            )
+    
+    def cambia_master_password(self):
+        """Cambia la master password"""
+        from views.security_dialogs import MasterPasswordDialog
+        import json
+        
+        if not self.crypto_manager:
+            QMessageBox.warning(
+                self, "Attenzione",
+                "Sistema di crittografia non disponibile"
+            )
+            return
+        
+        # Chiedi la vecchia password
+        dialog_vecchia = QDialog(self)
+        dialog_vecchia.setWindowTitle("Verifica Password Corrente")
+        dialog_vecchia.setModal(True)
+        
+        layout = QVBoxLayout(dialog_vecchia)
+        layout.addWidget(QLabel("Inserisci la password corrente:"))
+        
+        txt_vecchia = QLineEdit()
+        txt_vecchia.setEchoMode(QLineEdit.Password)
+        layout.addWidget(txt_vecchia)
+        
+        btn_layout = QHBoxLayout()
+        btn_ok = QPushButton("OK")
+        btn_annulla = QPushButton("Annulla")
+        btn_ok.clicked.connect(dialog_vecchia.accept)
+        btn_annulla.clicked.connect(dialog_vecchia.reject)
+        btn_layout.addWidget(btn_ok)
+        btn_layout.addWidget(btn_annulla)
+        layout.addLayout(btn_layout)
+        
+        if dialog_vecchia.exec_() != QDialog.Accepted:
+            return
+        
+        vecchia_password = txt_vecchia.text()
+        if not self.crypto_manager.verifica_password(vecchia_password):
+            QMessageBox.critical(self, "Errore", "Password corrente errata!")
+            return
+        
+        # Chiedi la nuova password
+        dialog_nuova = MasterPasswordDialog(self, prima_volta=True)
+        if dialog_nuova.exec_() != QDialog.Accepted:
+            return
+        
+        nuova_password = dialog_nuova.get_password()
+        
+        # Salva nuova configurazione
+        salt = self.crypto_manager.inizializza_con_password(nuova_password)
+        config = {
+            'salt': salt.hex(),
+            'password_hash': self.crypto_manager.master_password_hash
+        }
+        with open('security_config.json', 'w') as f:
+            json.dump(config, f)
+        
+        QMessageBox.information(
+            self, "Successo",
+            "Master password cambiata con successo!\n"
+            "Riavvia l'applicazione per applicare le modifiche."
+        )
+    
+    # === FUNZIONALITÀ DI BACKUP ===
+    
+    def crea_backup_manuale(self):
+        """Crea un backup manuale del database"""
+        if not self.backup_manager:
+            QMessageBox.warning(
+                self, "Attenzione",
+                "Sistema di backup non disponibile"
+            )
+            return
+        
+        risposta = QMessageBox.question(
+            self, "Conferma Backup",
+            "Creare un backup del database ora?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if risposta != QMessageBox.Yes:
+            return
+        
+        successo, path, messaggio = self.backup_manager.crea_backup()
+        
+        if successo:
+            QMessageBox.information(self, "Backup Completato", messaggio)
+        else:
+            QMessageBox.warning(self, "Errore Backup", messaggio)
+    
+    def gestisci_backup(self):
+        """Mostra la finestra di gestione backup"""
+        from views.backup_dialog import BackupDialog
+        
+        if not self.backup_manager:
+            QMessageBox.warning(
+                self, "Attenzione",
+                "Sistema di backup non disponibile"
+            )
+            return
+        
+        dialog = BackupDialog(self, self.backup_manager)
+        dialog.exec_()
+    
+    def esporta_backup(self):
+        """Esporta un backup in una posizione specifica"""
+        if not self.backup_manager:
+            QMessageBox.warning(
+                self, "Attenzione",
+                "Sistema di backup non disponibile"
+            )
+            return
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Esporta Backup",
+            f"accesscentral_backup_{datetime.now().strftime('%Y%m%d')}.db",
+            "Database (*.db)"
+        )
+        
+        if file_path:
+            successo, messaggio = self.backup_manager.esporta_backup(file_path)
+            if successo:
+                QMessageBox.information(self, "Esportazione Completata", messaggio)
+            else:
+                QMessageBox.warning(self, "Errore Esportazione", messaggio)
+    
+    def ripristina_backup(self):
+        """Ripristina un backup"""
+        if not self.backup_manager:
+            QMessageBox.warning(
+                self, "Attenzione",
+                "Sistema di backup non disponibile"
+            )
+            return
+        
+        risposta = QMessageBox.warning(
+            self, "⚠️ ATTENZIONE",
+            "Il ripristino di un backup sovrascriverà tutti i dati correnti!\n\n"
+            "Un backup del database corrente verrà creato automaticamente.\n\n"
+            "Vuoi continuare?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if risposta != QMessageBox.Yes:
+            return
+        
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Seleziona Backup da Ripristinare",
+            self.backup_manager.backup_dir,
+            "Database (*.db)"
+        )
+        
+        if file_path:
+            successo, messaggio = self.backup_manager.ripristina_backup(file_path)
+            
+            if successo:
+                QMessageBox.information(
+                    self, "Ripristino Completato",
+                    messaggio
+                )
+                # Chiudi l'applicazione
+                self.close()
+            else:
+                QMessageBox.critical(self, "Errore Ripristino", messaggio)
     
     def closeEvent(self, event):
         """Chiude il database quando si chiude l'applicazione"""
@@ -1879,7 +2276,6 @@ class CredenzialeDialog(QDialog):
         layout.addRow("Password *:", password_layout)
         
         # Checkbox RDP Configurata (prima degli altri campi per controllare visibilità)
-        from PyQt5.QtWidgets import QCheckBox
         self.rdp_configurata_check = QCheckBox("RDP già configurata (file .rdp salvato)")
         self.rdp_configurata_check.setToolTip("Seleziona se questa è una RDP salvata come file .rdp")
         # NON connettere ancora il segnale - lo faremo dopo aver creato tutti i widget
@@ -1991,3 +2387,310 @@ class CredenzialeDialog(QDialog):
             return utente
         else:
             return ""
+
+
+class AccessiVPNDetailDialog(QDialog):
+    """Dialog per visualizzare i dettagli di accesso VPN con possibilità di modifica"""
+    
+    def __init__(self, parent, cliente, cliente_controller):
+        super().__init__(parent)
+        self.cliente = cliente
+        self.cliente_controller = cliente_controller
+        self.setWindowTitle(f"Accessi VPN - {cliente.nome}")
+        self.setMinimumWidth(600)
+        self.init_ui()
+    
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Titolo
+        titolo = QLabel(f"<h3 style='color: #1976D2;'>🔐 Dettagli Accesso VPN</h3>")
+        layout.addWidget(titolo)
+        
+        # Form layout per i dettagli
+        form_layout = QFormLayout()
+        form_layout.setSpacing(12)
+        
+        # Nome VPN (dalla configurazione esistente)
+        nome_vpn = self.cliente.vpn_windows_name or self.cliente.vpn_exe_path or "Non configurata"
+        nome_label = QLabel(f"<b>{nome_vpn}</b>")
+        form_layout.addRow("Nome VPN:", nome_label)
+        
+        # Server
+        if self.cliente.vpn_server:
+            server_label = QLineEdit(self.cliente.vpn_server)
+            server_label.setReadOnly(True)
+            btn_copy_server = QPushButton("📋")
+            btn_copy_server.setMaximumWidth(40)
+            btn_copy_server.clicked.connect(lambda: self.copia_clipboard(self.cliente.vpn_server))
+            server_layout = QHBoxLayout()
+            server_layout.addWidget(server_label)
+            server_layout.addWidget(btn_copy_server)
+            form_layout.addRow("Server:", server_layout)
+        
+        # Username
+        if self.cliente.vpn_username:
+            username_label = QLineEdit(self.cliente.vpn_username)
+            username_label.setReadOnly(True)
+            btn_copy_user = QPushButton("📋")
+            btn_copy_user.setMaximumWidth(40)
+            btn_copy_user.clicked.connect(lambda: self.copia_clipboard(self.cliente.vpn_username))
+            user_layout = QHBoxLayout()
+            user_layout.addWidget(username_label)
+            user_layout.addWidget(btn_copy_user)
+            form_layout.addRow("Username:", user_layout)
+        
+        # Password
+        if self.cliente.vpn_password:
+            password_label = QLineEdit(self.cliente.vpn_password)
+            password_label.setReadOnly(True)
+            password_label.setEchoMode(QLineEdit.Password)
+            btn_copy_pass = QPushButton("📋")
+            btn_copy_pass.setMaximumWidth(40)
+            btn_copy_pass.clicked.connect(lambda: self.copia_clipboard(self.cliente.vpn_password))
+            btn_show_pass = QPushButton("👁")
+            btn_show_pass.setMaximumWidth(40)
+            btn_show_pass.setCheckable(True)
+            btn_show_pass.clicked.connect(lambda checked: password_label.setEchoMode(QLineEdit.Normal if checked else QLineEdit.Password))
+            pass_layout = QHBoxLayout()
+            pass_layout.addWidget(password_label)
+            pass_layout.addWidget(btn_show_pass)
+            pass_layout.addWidget(btn_copy_pass)
+            form_layout.addRow("Password:", pass_layout)
+        
+        # Porta
+        if self.cliente.vpn_port:
+            porta_label = QLabel(str(self.cliente.vpn_port))
+            form_layout.addRow("Porta:", porta_label)
+        
+        # Directory File Configurazione
+        if self.cliente.vpn_config_dir:
+            config_label = QLineEdit(self.cliente.vpn_config_dir)
+            config_label.setReadOnly(True)
+            btn_open_config = QPushButton("📂 Apri")
+            btn_open_config.clicked.connect(lambda: self.apri_directory(self.cliente.vpn_config_dir))
+            config_layout = QHBoxLayout()
+            config_layout.addWidget(config_label)
+            config_layout.addWidget(btn_open_config)
+            form_layout.addRow("Dir. Configurazione:", config_layout)
+        
+        # Directory Procedura
+        if self.cliente.vpn_procedure_dir:
+            proc_label = QLineEdit(self.cliente.vpn_procedure_dir)
+            proc_label.setReadOnly(True)
+            btn_open_proc = QPushButton("📂 Apri")
+            btn_open_proc.clicked.connect(lambda: self.apri_directory(self.cliente.vpn_procedure_dir))
+            proc_layout = QHBoxLayout()
+            proc_layout.addWidget(proc_label)
+            proc_layout.addWidget(btn_open_proc)
+            form_layout.addRow("Dir. Procedura:", proc_layout)
+        
+        layout.addLayout(form_layout)
+        layout.addSpacing(20)
+        
+        # Bottoni
+        btn_layout = QHBoxLayout()
+        btn_modifica = QPushButton("✏️ Modifica")
+        btn_chiudi = QPushButton("Chiudi")
+        
+        btn_modifica.setObjectName("btn_primary")
+        btn_chiudi.setObjectName("btn_neutral")
+        
+        btn_modifica.clicked.connect(self.apri_modifica)
+        btn_chiudi.clicked.connect(self.accept)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_modifica)
+        btn_layout.addWidget(btn_chiudi)
+        layout.addLayout(btn_layout)
+    
+    def copia_clipboard(self, testo):
+        """Copia il testo negli appunti"""
+        QApplication.clipboard().setText(testo)
+        QMessageBox.information(self, "Copiato", "Testo copiato negli appunti!")
+    
+    def apri_directory(self, path):
+        """Apre la directory in Esplora Risorse"""
+        import os
+        import subprocess
+        
+        if not path:
+            QMessageBox.warning(self, "Errore", "Nessun percorso specificato")
+            return
+        
+        # Normalizza il path
+        path = os.path.normpath(path)
+        
+        if not os.path.exists(path):
+            QMessageBox.warning(self, "Errore", f"Percorso non trovato:\n{path}")
+            return
+        
+        # Se è una directory, aprila
+        if os.path.isdir(path):
+            try:
+                os.startfile(path)
+            except Exception as e:
+                QMessageBox.warning(self, "Errore", f"Impossibile aprire la directory:\n{str(e)}")
+        else:
+            # Se è un file, apri la directory contenente e seleziona il file
+            try:
+                subprocess.Popen(f'explorer /select,"{path}"')
+            except Exception as e:
+                QMessageBox.warning(self, "Errore", f"Impossibile aprire il file:\n{str(e)}")
+    
+    def apri_modifica(self):
+        """Apre il dialog di modifica"""
+        dialog = AccessiVPNEditDialog(self, self.cliente, self.cliente_controller, edit_mode=True)
+        if dialog.exec_() == QDialog.Accepted:
+            # Ricarica i dati
+            self.cliente = self.cliente_controller.ottieni_cliente(self.cliente.id)
+            self.accept()
+
+
+class AccessiVPNEditDialog(QDialog):
+    """Dialog per modificare/creare i dettagli di accesso VPN"""
+    
+    def __init__(self, parent, cliente, cliente_controller, edit_mode=False):
+        super().__init__(parent)
+        self.cliente = cliente
+        self.cliente_controller = cliente_controller
+        self.edit_mode = edit_mode
+        self.setWindowTitle(f"{'Modifica' if edit_mode else 'Configura'} Accessi VPN - {cliente.nome}")
+        self.setMinimumWidth(600)
+        self.init_ui()
+    
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Titolo
+        titolo = QLabel(f"<h3 style='color: #1976D2;'>🔐 {'Modifica' if self.edit_mode else 'Configura'} Accessi VPN</h3>")
+        layout.addWidget(titolo)
+        
+        # Form layout
+        form_layout = QFormLayout()
+        form_layout.setSpacing(12)
+        
+        # Nome VPN (readonly, mostra quella configurata)
+        nome_vpn = self.cliente.vpn_windows_name or self.cliente.vpn_exe_path or "Nessuna VPN configurata"
+        nome_label = QLabel(f"<b>{nome_vpn}</b>")
+        form_layout.addRow("Nome VPN:", nome_label)
+        
+        # Server
+        self.server_edit = QLineEdit()
+        self.server_edit.setText(self.cliente.vpn_server or "")
+        self.server_edit.setPlaceholderText("es: vpn.example.com")
+        form_layout.addRow("Server:", self.server_edit)
+        
+        # Username
+        self.username_edit = QLineEdit()
+        self.username_edit.setText(self.cliente.vpn_username or "")
+        self.username_edit.setPlaceholderText("Username VPN")
+        form_layout.addRow("Username:", self.username_edit)
+        
+        # Password
+        self.password_edit = QLineEdit()
+        self.password_edit.setText(self.cliente.vpn_password or "")
+        self.password_edit.setEchoMode(QLineEdit.Password)
+        self.password_edit.setPlaceholderText("Password VPN")
+        btn_show = QPushButton("👁")
+        btn_show.setMaximumWidth(40)
+        btn_show.setCheckable(True)
+        btn_show.clicked.connect(lambda checked: self.password_edit.setEchoMode(QLineEdit.Normal if checked else QLineEdit.Password))
+        pass_layout = QHBoxLayout()
+        pass_layout.addWidget(self.password_edit)
+        pass_layout.addWidget(btn_show)
+        form_layout.addRow("Password:", pass_layout)
+        
+        # Porta
+        self.porta_spin = QSpinBox()
+        self.porta_spin.setRange(0, 65535)
+        self.porta_spin.setValue(self.cliente.vpn_port or 0)
+        self.porta_spin.setSpecialValueText("Non specificata")
+        form_layout.addRow("Porta:", self.porta_spin)
+        
+        # Directory File Configurazione
+        self.config_edit = QLineEdit()
+        self.config_edit.setText(self.cliente.vpn_config_dir or "")
+        self.config_edit.setPlaceholderText("Percorso directory configurazione")
+        btn_browse_config = QPushButton("📂 Sfoglia")
+        btn_browse_config.clicked.connect(self.sfoglia_config_dir)
+        config_layout = QHBoxLayout()
+        config_layout.addWidget(self.config_edit)
+        config_layout.addWidget(btn_browse_config)
+        form_layout.addRow("Dir. Configurazione:", config_layout)
+        
+        # Directory Procedura
+        self.proc_edit = QLineEdit()
+        self.proc_edit.setText(self.cliente.vpn_procedure_dir or "")
+        self.proc_edit.setPlaceholderText("Percorso directory procedura")
+        btn_browse_proc = QPushButton("📂 Sfoglia")
+        btn_browse_proc.clicked.connect(self.sfoglia_proc_dir)
+        proc_layout = QHBoxLayout()
+        proc_layout.addWidget(self.proc_edit)
+        proc_layout.addWidget(btn_browse_proc)
+        form_layout.addRow("Dir. Procedura:", proc_layout)
+        
+        layout.addLayout(form_layout)
+        layout.addSpacing(20)
+        
+        # Bottoni
+        btn_layout = QHBoxLayout()
+        btn_salva = QPushButton("💾 Salva")
+        btn_annulla = QPushButton("❌ Annulla")
+        
+        btn_salva.setObjectName("btn_primary")
+        btn_annulla.setObjectName("btn_neutral")
+        
+        btn_salva.clicked.connect(self.salva)
+        btn_annulla.clicked.connect(self.reject)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_salva)
+        btn_layout.addWidget(btn_annulla)
+        layout.addLayout(btn_layout)
+    
+    def sfoglia_config_dir(self):
+        """Sfoglia per selezionare directory configurazione"""
+        directory = QFileDialog.getExistingDirectory(self, "Seleziona Directory Configurazione")
+        if directory:
+            self.config_edit.setText(directory)
+    
+    def sfoglia_proc_dir(self):
+        """Sfoglia per selezionare directory procedura"""
+        directory = QFileDialog.getExistingDirectory(self, "Seleziona Directory Procedura")
+        if directory:
+            self.proc_edit.setText(directory)
+    
+    def salva(self):
+        """Salva le modifiche"""
+        try:
+            porta = self.porta_spin.value() if self.porta_spin.value() > 0 else None
+            
+            # Aggiorna il cliente con i nuovi dati VPN
+            success = self.cliente_controller.modifica_cliente(
+                self.cliente.id,
+                self.cliente.nome,
+                self.cliente.descrizione,
+                self.cliente.vpn_exe_path,
+                self.cliente.vpn_windows_name,
+                self.cliente.pm_id,
+                self.server_edit.text(),
+                self.username_edit.text(),
+                self.password_edit.text(),
+                porta,
+                self.config_edit.text(),
+                self.proc_edit.text()
+            )
+            
+            if success:
+                QMessageBox.information(self, "Successo", "Informazioni VPN salvate con successo!")
+                self.accept()
+            else:
+                QMessageBox.warning(self, "Errore", "Impossibile salvare le informazioni VPN")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", f"Errore durante il salvataggio:\n{str(e)}")

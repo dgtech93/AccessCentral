@@ -202,6 +202,34 @@ class DatabaseManager:
                 cursor.execute("ALTER TABLE servizi ADD COLUMN link TEXT")
                 print("Migrazione: Aggiunta colonna link alla tabella servizi")
             
+            # Controlla e aggiungi i nuovi campi VPN nella tabella clienti
+            cursor.execute("PRAGMA table_info(clienti)")
+            clienti_columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'vpn_server' not in clienti_columns:
+                cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_server TEXT")
+                print("Migrazione: Aggiunta colonna vpn_server alla tabella clienti")
+            
+            if 'vpn_username' not in clienti_columns:
+                cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_username TEXT")
+                print("Migrazione: Aggiunta colonna vpn_username alla tabella clienti")
+            
+            if 'vpn_password' not in clienti_columns:
+                cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_password TEXT")
+                print("Migrazione: Aggiunta colonna vpn_password alla tabella clienti")
+            
+            if 'vpn_port' not in clienti_columns:
+                cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_port INTEGER")
+                print("Migrazione: Aggiunta colonna vpn_port alla tabella clienti")
+            
+            if 'vpn_config_dir' not in clienti_columns:
+                cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_config_dir TEXT")
+                print("Migrazione: Aggiunta colonna vpn_config_dir alla tabella clienti")
+            
+            if 'vpn_procedure_dir' not in clienti_columns:
+                cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_procedure_dir TEXT")
+                print("Migrazione: Aggiunta colonna vpn_procedure_dir alla tabella clienti")
+            
             conn.commit()
         except Exception as e:
             print(f"Errore durante la migrazione: {e}")

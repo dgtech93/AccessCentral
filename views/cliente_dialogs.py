@@ -4,7 +4,7 @@ Dialog per gestire Consulenti e Contatti del Cliente
 
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QListWidget, QLabel, QMessageBox, QFormLayout,
-                             QLineEdit, QListWidgetItem)
+                             QLineEdit, QListWidgetItem, QWidget, QTextBrowser)
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QDesktopServices, QFont, QColor
 from controllers.risorse_controller import RisorseController
@@ -223,10 +223,9 @@ class GestioneContattiDialog(QDialog):
             self.list_contatti.addItem(item)
             
             # Crea widget custom con label HTML
-            from PyQt5.QtWidgets import QLabel, QWidget, QHBoxLayout as HBox
             widget = QWidget()
             widget.setAttribute(Qt.WA_TransparentForMouseEvents)  # Permette click sulla riga
-            layout_widget = HBox()
+            layout_widget = QHBoxLayout()
             layout_widget.setContentsMargins(5, 2, 5, 2)
             
             label = QLabel()
@@ -284,7 +283,6 @@ class GestioneContattiDialog(QDialog):
         
         layout = QVBoxLayout()
         
-        from PyQt5.QtWidgets import QTextBrowser
         text_browser = QTextBrowser()
         text_browser.setHtml(html)
         text_browser.setOpenExternalLinks(True)

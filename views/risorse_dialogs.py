@@ -4,7 +4,8 @@ Dialog per gestire PM, Consulenti e Contatti
 
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QTableWidget, QTableWidgetItem, QHeaderView,
-                             QMessageBox, QFormLayout, QLineEdit, QLabel)
+                             QMessageBox, QFormLayout, QLineEdit, QLabel,
+                             QFileDialog)
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QDesktopServices
 from models.pm import PM
@@ -191,7 +192,6 @@ class GestionePMDialog(QDialog):
     
     def export_csv(self):
         """Esporta PM in formato CSV"""
-        from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Esporta PM CSV", "", "File CSV (*.csv)"
         )
@@ -210,7 +210,6 @@ class GestionePMDialog(QDialog):
     
     def export_excel(self):
         """Esporta PM in formato Excel"""
-        from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Esporta PM Excel", "", "File Excel (*.xlsx)"
         )
@@ -229,7 +228,6 @@ class GestionePMDialog(QDialog):
     
     def import_dati(self):
         """Importa PM da file CSV o Excel"""
-        from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Importa PM", "", "File CSV/Excel (*.csv *.xlsx *.xls)"
         )
@@ -467,7 +465,6 @@ class GestioneConsulentiDialog(QDialog):
     
     def export_csv(self):
         """Esporta Consulenti in formato CSV"""
-        from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Esporta Consulenti CSV", "", "File CSV (*.csv)"
         )
@@ -486,7 +483,6 @@ class GestioneConsulentiDialog(QDialog):
     
     def export_excel(self):
         """Esporta Consulenti in formato Excel"""
-        from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Esporta Consulenti Excel", "", "File Excel (*.xlsx)"
         )
@@ -505,7 +501,6 @@ class GestioneConsulentiDialog(QDialog):
     
     def import_dati(self):
         """Importa Consulenti da file CSV o Excel"""
-        from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Importa Consulenti", "", "File CSV/Excel (*.csv *.xlsx *.xls)"
         )

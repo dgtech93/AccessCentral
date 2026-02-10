@@ -11,14 +11,16 @@ from models.credenziale import Credenziale
 class CredenzialeController:
     """Gestisce tutta la logica business relativa a servizi e credenziali"""
     
-    def __init__(self, db: DatabaseManager):
+    def __init__(self, db: DatabaseManager, crypto_manager=None):
         """
         Inizializza il controller
         
         Args:
             db: Gestore del database
+            crypto_manager: Gestore crittografia (opzionale per compatibilità)
         """
         self.db = db
+        self.crypto_manager = crypto_manager
     
     # ===== GESTIONE SERVIZI =====
     
@@ -158,24 +160,39 @@ class CredenzialeController:
         if not password:
             raise ValueError("La password è obbligatoria")
         
+        # Cripta la password se disponibile il crypto manager
+        password_da_salvare = password
+        if self.crypto_manager:
+            password_da_salvare = self.crypto_manager.cripta(password)
+        
         return Credenziale.create(self.db, servizio_id, username.strip(),
-                                 password, host.strip(), porta, note, rdp_configurata)
+                                 password_da_salvare, host.strip(), porta, note, rdp_configurata)
     
     def ottieni_credenziali_servizio(self, servizio_id: int) -> List[Credenziale]:
         """
-        Recupera tutte le credenziali di un servizio
+        Recupera tutte le credenziali di un servizio (con password decriptate)
         
         Args:
             servizio_id: ID del servizio
             
         Returns:
-            Lista di credenziali
+            Lista di credenziali con password decriptate
         """
-        return Credenziale.get_by_servizio(self.db, servizio_id)
+        credenziali = Credenziale.get_by_servizio(self.db, servizio_id)
+        
+        # Decripta le password se disponibile il crypto manager
+        if self.crypto_manager:
+            for cred in credenziali:
+                try:
+                    cred.password = self.crypto_manager.decripta(cred.password)
+                except:
+                    pass  # Mantieni la password come è se la decrittazione fallisce
+        
+        return credenziali
     
     def ottieni_credenziale(self, credenziale_id: int) -> Optional[Credenziale]:
         """
-        Recupera una credenziale specifica
+        Recupera una credenziale specifica (con password decriptata)
         
         Args:
             credenziale_id: ID della credenziale
@@ -183,7 +200,16 @@ class CredenzialeController:
         Returns:
             Credenziale trovata o None
         """
-        return Credenziale.get_by_id(self.db, credenziale_id)
+        cred = Credenziale.get_by_id(self.db, credenziale_id)
+        
+        # Decripta la password se disponibile il crypto manager
+        if cred and self.crypto_manager:
+            try:
+                cred.password = self.crypto_manager.decripta(cred.password)
+            except:
+                pass  # Mantieni la password come è se la decrittazione fallisce
+        
+        return cred
     
     def modifica_credenziale(self, credenziale_id: int, username: str,
                             password: str, host: str = "",
@@ -194,9 +220,9 @@ class CredenzialeController:
         
         Args:
             credenziale_id: ID della credenziale da modificare
-            username: Nuovo username
+            username: Nuovo nome utente
             password: Nuova password
-            host: Nuovo host
+            host: Nuovo host/IP
             porta: Nuova porta
             note: Nuove note
             rdp_configurata: Se True, è una RDP già configurata
@@ -213,8 +239,13 @@ class CredenzialeController:
         if not password:
             raise ValueError("La password è obbligatoria")
         
+        # Cripta la password se disponibile il crypto manager
+        password_da_salvare = password
+        if self.crypto_manager:
+            password_da_salvare = self.crypto_manager.cripta(password)
+        
         return Credenziale.update(self.db, credenziale_id, username.strip(),
-                                 password, host.strip(), porta, note, rdp_configurata)
+                                 password_da_salvare, host.strip(), porta, note, rdp_configurata)
     
     def elimina_credenziale(self, credenziale_id: int) -> bool:
         """
