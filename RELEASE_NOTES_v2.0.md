@@ -95,36 +95,6 @@ Siamo entusiasti di annunciare AccessCentral v2.0, una release importante che in
 
 ---
 
-## 🎨 Novità Temi
-
-### 3 Temi Disponibili
-
-#### Tema Chiaro (Microsoft-style) - **DEFAULT**
-- Design pulito e professionale
-- Alto contrasto per leggibilità
-- Stile moderno Windows 11
-- Ideale per ambienti luminosi
-
-#### Tema Dark
-- Sfondo scuro per ridurre affaticamento visivo
-- Contrasto ottimizzato
-- Perfetto per lavoro notturno
-- Riduce emissioni luce blu
-
-#### Tema Colorato
-- Accenti vivaci e colorati
-- Design originale con gradienti
-- Personalità distintiva
-- Per chi ama il colore
-
-### Gestione Temi
-- **Menu Visualizza → Temi**: Accesso rapido
-- **Cambio Istantaneo**: Applicazione immediata
-- **Persistenza**: Tema salvato in `config.json`
-- **Ricordato**: Tema scelto viene riapplicato all'avvio
-
----
-
 ## 🔧 Miglioramenti
 
 ### VPN e Directory
@@ -206,9 +176,6 @@ backup_config.json (gitignored)
 ├── intervallo_giorni: 1-365
 ├── max_backup: 1-100
 └── ultimo_backup: timestamp ISO
-
-config.json (gitignored)
-└── tema: "chiaro" | "dark" | "colorato"
 ```
 
 ---
@@ -228,7 +195,6 @@ config.json (gitignored)
 - Implementata funzione `ricerca_globale()`
 - Menu Sicurezza (genera password, cambia master)
 - Menu Backup (4 opzioni)
-- Menu Temi (3 opzioni)
 - Metodi gestione backup (7 metodi)
 - Fix apertura directory VPN
 - Aggiornato titolo finestra: "AccessCentral v2.0"
@@ -348,13 +314,6 @@ pip install -r requirements.txt
 3. Clicca "Ripristina"
 4. Conferma (verrà creato backup corrente)
 5. Riavvia applicazione
-```
-
-### Cambiare Tema
-```
-1. Menu Visualizza → Temi
-2. Seleziona tema desiderato
-3. Applicazione immediata
 ```
 
 ---

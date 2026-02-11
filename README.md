@@ -25,14 +25,6 @@ Applicazione desktop completa per la gestione di credenziali, servizi, risorse e
 - **Smart Filter**: Mostra tutti i servizi quando si filtra per cliente
 - **Evidenziazione**: Risultati evidenziati nella struttura ad albero
 
-### 🎨 Personalizzazione (NEW v2.0)
-- **3 Temi Disponibili**:
-  - **Chiaro (Microsoft-style)**: Design pulito e professionale (default)
-  - **Dark**: Tema scuro per ridurre affaticamento visivo
-  - **Colorato**: Tema vivace con accenti colorati
-- **Menu Temi**: Cambio tema al volo dal menu Visualizza
-- **Preferenze Salvate**: Il tema scelto viene ricordato
-
 ### Gestione Clienti Avanzata
 - **Organizzazione Clienti**: Gestisci i tuoi clienti con descrizioni dettagliate
 - **PM di Riferimento**: Associa un Project Manager responsabile ad ogni cliente
@@ -125,7 +117,6 @@ CredenzialiSuite/
 File Configurazione:
 ├── security_config.json         # Salt + hash master password + recovery code
 ├── backup_config.json          # Config backup automatico
-├── config.json                 # Preferenze UI (tema selezionato)
 └── credenziali_suite.db        # Database SQLite con password criptate
 ```
 
@@ -214,15 +205,6 @@ Al primo avvio, ti verrà chiesto di:
    - **Servizi**: Per nome, tipo o link
    - **Credenziali**: Per username, host o note
 4. Filtrando per cliente vengono mostrati **tutti i suoi servizi**
-
-### Gestione Temi (v2.0)
-
-1. Menu **Visualizza → Temi**
-2. Scegli tra:
-   - **Tema Chiaro** (Microsoft-style)
-   - **Tema Dark**
-   - **Tema Colorato**
-3. Il tema viene salvato automaticamente
 
 ### Sicurezza (v2.0)
 
@@ -432,11 +414,10 @@ cryptography>=41.0.0           # Crittografia AES-256
 - ✨ Smart filter: mostra tutti i servizi quando si cerca un cliente
 - 🔧 Ricerca case-insensitive con minimo 2 caratteri
 
-**🎨 Personalizzazione**
-- ✨ 3 temi disponibili (Chiaro Microsoft-style, Dark, Colorato)
-- ✨ Menu selezione tema con persistenza preferenze
+**🎨 Interfaccia**
 - 🔧 Layout VPN ridisegnato in griglia 2x2
-- 🔧 Stile più professionale e moderno
+- 🔧 Design moderno e professionale
+- 🔧 Colori codificati per azioni (Blu=Nuovo, Rosso=Elimina, etc.)
 
 **🐛 Bug Fix**
 - 🔧 Correzione apertura directory VPN in Esplora Risorse
