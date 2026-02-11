@@ -1,10 +1,10 @@
 ; Script generato con Inno Setup
-; AccessCentral - Installer Windows
+; AccessCentral v2.0 - Installer Windows
 
 #define MyAppName "AccessCentral"
-#define MyAppVersion "1.3.1"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "DiegoG Corporate"
-#define MyAppExeName "CredenzialiSuite.exe"
+#define MyAppExeName "AccessCentral.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".creds"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -44,9 +44,23 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
+; Eseguibile principale
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "credenziali_suite.db"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+
+; Database (solo se non esiste già)
+Source: "credenziali_suite.db"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall
+
+; Documentazione
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "RELEASE_NOTES_v2.0.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "BUILD_README.md"; DestDir: "{app}"; Flags: ignoreversion
+
+; Icona (se esiste)
+Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+
+; NOTA: File di configurazione NON inclusi nell'installer
+; security_config.json, backup_config.json, config.json
+; Questi file vengono creati al primo avvio dall'applicazione
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
@@ -58,10 +72,22 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Fil
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
+; File database
 Type: files; Name: "{app}\credenziali_suite.db"
 Type: files; Name: "{app}\credenziali_suite.db-journal"
+
+; File di configurazione v2.0
+Type: files; Name: "{app}\security_config.json"
+Type: files; Name: "{app}\backup_config.json"
+Type: files; Name: "{app}\config.json"
+
+; Directory backup
+Type: filesandordirs; Name: "{app}\backups"
+
+; File temporanei
 Type: files; Name: "{app}\*.log"
 Type: files; Name: "{app}\*.tmp"
+Type: files; Name: "{app}\temp_rdp_*.rdp"
 Type: filesandordirs; Name: "{app}\__pycache__"
 
 [Registry]
@@ -74,6 +100,7 @@ Root: HKA; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes
 [Code]
 var
   DeleteDatabase: Boolean;
+  DeleteSecurityConfig: Boolean;
 
 function InitializeSetup(): Boolean;
 var
@@ -87,6 +114,7 @@ begin
     if MsgBox('AccessCentral è attualmente in esecuzione. Chiudere l''applicazione prima di continuare l''installazione?', mbConfirmation, MB_YESNO) = IDYES then
     begin
       // Termina il processo se in esecuzione
+      Exec('taskkill', '/F /IM AccessCentral.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Exec('taskkill', '/F /IM CredenzialiSuite.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Sleep(2000);
       Result := True;
@@ -105,6 +133,7 @@ var
 begin
   Result := True;
   DeleteDatabase := False;
+  DeleteSecurityConfig := False;
   ProcessRunning := False;
   
   // Controlla se l'applicazione è in esecuzione
@@ -122,6 +151,7 @@ begin
     RetryCount := 0;
     while (RetryCount < 3) do
     begin
+      Exec('taskkill', '/F /IM AccessCentral.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Exec('taskkill', '/F /IM CredenzialiSuite.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Sleep(1500);
       
@@ -136,15 +166,22 @@ begin
     Sleep(1000);
   end;
   
-  // Chiede conferma per eliminare il database
-  MsgText := 'Vuoi eliminare anche il database con tutte le credenziali salvate?' + #13#10 + #13#10 +
+  // Chiede conferma per eliminare il database e i dati
+  MsgText := '⚠️ ATTENZIONE - Eliminazione Dati' + #13#10 + #13#10 +
+             'Vuoi eliminare TUTTI i dati dell''applicazione?' + #13#10 + #13#10 +
+             'Questo include:' + #13#10 +
+             '• Database con tutte le credenziali salvate' + #13#10 +
+             '• Configurazione sicurezza (master password)' + #13#10 +
+             '• Tutti i backup automatici' + #13#10 +
+             '• Preferenze e configurazioni' + #13#10 + #13#10 +
              'Seleziona:' + #13#10 +
-             '• SI per eliminare tutto (il database non sarà recuperabile)' + #13#10 +
-             '• NO per mantenere il database';
+             '• SI per ELIMINARE TUTTO (non recuperabile!)' + #13#10 +
+             '• NO per mantenere i dati (potrai reinstallare dopo)';
              
   if MsgBox(MsgText, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
   begin
     DeleteDatabase := True;
+    DeleteSecurityConfig := True;
   end;
 end;
 
@@ -152,19 +189,44 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usPostUninstall then
   begin
-    // Elimina il database se richiesto
+    // Elimina tutti i dati se richiesto
     if DeleteDatabase then
     begin
+      // Database
       DeleteFile(ExpandConstant('{app}\credenziali_suite.db'));
       DeleteFile(ExpandConstant('{app}\credenziali_suite.db-journal'));
+      
+      // File di configurazione
+      DeleteFile(ExpandConstant('{app}\security_config.json'));
+      DeleteFile(ExpandConstant('{app}\backup_config.json'));
+      DeleteFile(ExpandConstant('{app}\config.json'));
+      
+      // Directory backup
+      DelTree(ExpandConstant('{app}\backups'), True, True, True);
     end;
   end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  InfoMsg: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    // Operazioni post-installazione
+    // Mostra informazioni importanti dopo l'installazione
+    InfoMsg := 'AccessCentral v2.0 è stato installato con successo!' + #13#10 + #13#10 +
+               '🔐 PRIMA CONFIGURAZIONE:' + #13#10 +
+               'Al primo avvio ti verrà chiesto di:' + #13#10 +
+               '1. Impostare una Master Password (min 6 caratteri)' + #13#10 +
+               '2. Salvare il Codice di Recupero (IMPORTANTE!)' + #13#10 + #13#10 +
+               '⚠️ SALVA IL CODICE DI RECUPERO!' + #13#10 +
+               'Verrà mostrato solo UNA volta e serve per' + #13#10 +
+               'recuperare l''accesso se dimentichi la password.' + #13#10 + #13#10 +
+               '💾 BACKUP AUTOMATICO:' + #13#10 +
+               'Il sistema di backup automatico è attivo.' + #13#10 +
+               'Configura da Menu → Backup → Gestisci Backup' + #13#10 + #13#10 +
+               'Buon lavoro con AccessCentral! 🚀';
+    
+    MsgBox(InfoMsg, mbInformation, MB_OK);
   end;
 end;

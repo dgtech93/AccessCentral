@@ -135,7 +135,7 @@ class CredenzialeController:
     
     def crea_credenziale(self, servizio_id: int, username: str, password: str,
                         host: str = "", porta: Optional[int] = None,
-                        note: str = "", rdp_configurata: bool = False) -> int:
+                        note: str = "", rdp_configurata: bool = False, link: str = "") -> int:
         """
         Crea una nuova credenziale
         
@@ -147,6 +147,7 @@ class CredenzialeController:
             porta: Porta del servizio
             note: Note aggiuntive
             rdp_configurata: Se True, è una RDP già configurata da lanciare direttamente
+            link: Link/URL del servizio (per aprire nel browser)
             
         Returns:
             ID della credenziale creata
@@ -166,7 +167,7 @@ class CredenzialeController:
             password_da_salvare = self.crypto_manager.cripta(password)
         
         return Credenziale.create(self.db, servizio_id, username.strip(),
-                                 password_da_salvare, host.strip(), porta, note, rdp_configurata)
+                                 password_da_salvare, host.strip(), porta, note, rdp_configurata, link.strip())
     
     def ottieni_credenziali_servizio(self, servizio_id: int) -> List[Credenziale]:
         """
@@ -214,7 +215,7 @@ class CredenzialeController:
     def modifica_credenziale(self, credenziale_id: int, username: str,
                             password: str, host: str = "",
                             porta: Optional[int] = None, note: str = "",
-                            rdp_configurata: bool = False) -> bool:
+                            rdp_configurata: bool = False, link: str = "") -> bool:
         """
         Modifica una credenziale esistente
         
@@ -226,6 +227,7 @@ class CredenzialeController:
             porta: Nuova porta
             note: Nuove note
             rdp_configurata: Se True, è una RDP già configurata
+            link: Link/URL del servizio (per aprire nel browser)
             
         Returns:
             True se la modifica è riuscita
@@ -245,7 +247,7 @@ class CredenzialeController:
             password_da_salvare = self.crypto_manager.cripta(password)
         
         return Credenziale.update(self.db, credenziale_id, username.strip(),
-                                 password_da_salvare, host.strip(), porta, note, rdp_configurata)
+                                 password_da_salvare, host.strip(), porta, note, rdp_configurata, link.strip())
     
     def elimina_credenziale(self, credenziale_id: int) -> bool:
         """

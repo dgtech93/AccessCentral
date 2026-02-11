@@ -11,7 +11,8 @@ class Credenziale:
     
     def __init__(self, id: Optional[int] = None, servizio_id: int = 0,
                  username: str = "", password: str = "", host: str = "",
-                 porta: Optional[int] = None, note: str = "", rdp_configurata: bool = False):
+                 porta: Optional[int] = None, note: str = "", rdp_configurata: bool = False,
+                 link: str = ""):
         self.id = id
         self.servizio_id = servizio_id
         self.username = username
@@ -20,11 +21,12 @@ class Credenziale:
         self.porta = porta
         self.note = note
         self.rdp_configurata = rdp_configurata
+        self.link = link
     
     @staticmethod
     def create(db: DatabaseManager, servizio_id: int, username: str,
                password: str, host: str = "", porta: Optional[int] = None,
-               note: str = "", rdp_configurata: bool = False) -> int:
+               note: str = "", rdp_configurata: bool = False, link: str = "") -> int:
         """
         Crea una nuova credenziale nel database
         
@@ -37,16 +39,17 @@ class Credenziale:
             porta: Porta del servizio
             note: Note aggiuntive
             rdp_configurata: Se True, è una RDP già configurata da lanciare direttamente
+            link: Link/URL del servizio (per aprire nel browser)
             
         Returns:
             ID della credenziale creata
         """
         query = """
-            INSERT INTO credenziali (servizio_id, username, password, host, porta, note, rdp_configurata)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO credenziali (servizio_id, username, password, host, porta, note, rdp_configurata, link)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         return db.execute_update(query, (servizio_id, username, password, 
-                                         host, porta, note, 1 if rdp_configurata else 0))
+                                         host, porta, note, 1 if rdp_configurata else 0, link))
     
     @staticmethod
     def get_by_servizio(db: DatabaseManager, servizio_id: int) -> List['Credenziale']:
@@ -75,6 +78,12 @@ class Credenziale:
             except (KeyError, IndexError):
                 rdp_conf = False
             
+            # Gestisci link con try-except per compatibilità
+            try:
+                link_val = row['link'] or ""
+            except (KeyError, IndexError):
+                link_val = ""
+            
             credenziale = Credenziale(
                 id=row['id'],
                 servizio_id=row['servizio_id'],
@@ -83,7 +92,8 @@ class Credenziale:
                 host=row['host'],
                 porta=row['porta'],
                 note=row['note'],
-                rdp_configurata=rdp_conf
+                rdp_configurata=rdp_conf,
+                link=link_val
             )
             credenziali.append(credenziale)
         
@@ -112,6 +122,12 @@ class Credenziale:
             except (KeyError, IndexError):
                 rdp_conf = False
             
+            # Gestisci link con try-except per compatibilità
+            try:
+                link_val = row['link'] or ""
+            except (KeyError, IndexError):
+                link_val = ""
+            
             return Credenziale(
                 id=row['id'],
                 servizio_id=row['servizio_id'],
@@ -120,14 +136,15 @@ class Credenziale:
                 host=row['host'],
                 porta=row['porta'],
                 note=row['note'],
-                rdp_configurata=rdp_conf
+                rdp_configurata=rdp_conf,
+                link=link_val
             )
         return None
     
     @staticmethod
     def update(db: DatabaseManager, credenziale_id: int, username: str,
                password: str, host: str = "", porta: Optional[int] = None,
-               note: str = "", rdp_configurata: bool = False) -> bool:
+               note: str = "", rdp_configurata: bool = False, link: str = "") -> bool:
         """
         Aggiorna una credenziale esistente
         
@@ -140,18 +157,19 @@ class Credenziale:
             porta: Nuova porta
             note: Nuove note
             rdp_configurata: Se True, è una RDP già configurata
+            link: Link/URL del servizio
             
         Returns:
             True se l'aggiornamento è riuscito
         """
         query = """
             UPDATE credenziali 
-            SET username = ?, password = ?, host = ?, porta = ?, note = ?, rdp_configurata = ?,
+            SET username = ?, password = ?, host = ?, porta = ?, note = ?, rdp_configurata = ?, link = ?,
                 modificato_il = CURRENT_TIMESTAMP
             WHERE id = ?
         """
         rowcount = db.execute_update(query, (username, password, host, 
-                                             porta, note, 1 if rdp_configurata else 0, credenziale_id))
+                                             porta, note, 1 if rdp_configurata else 0, link, credenziale_id))
         return rowcount > 0
     
     @staticmethod

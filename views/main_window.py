@@ -245,14 +245,6 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(info_frame)
         right_layout.addSpacing(15)
         
-        # Pulsante per aprire link (solo per servizi CRM/Web)
-        self.btn_apri_link = QPushButton("🌐 Apri Link nel Browser")
-        self.btn_apri_link.setObjectName("btn_action")
-        self.btn_apri_link.clicked.connect(self.apri_link_servizio)
-        self.btn_apri_link.setEnabled(False)
-        self.btn_apri_link.setVisible(False)  # Nascosto di default
-        right_layout.addWidget(self.btn_apri_link)
-        
         # Sezione Risorse Cliente
         risorse_label = QLabel("<b style='color: #1976D2;'>👥 Risorse Cliente</b>")
         right_layout.addWidget(risorse_label)
@@ -289,13 +281,14 @@ class MainWindow(QMainWindow):
         
         # Tree widget credenziali con colonna azione
         self.tree_credenziali = QTreeWidget()
-        self.tree_credenziali.setHeaderLabels(["Username", "Host", "Porta", "Password", "Note", "Azione"])
+        self.tree_credenziali.setHeaderLabels(["Username", "Host", "Porta", "Password", "Note", "Link", "Azione"])
         self.tree_credenziali.setColumnWidth(0, 150)
         self.tree_credenziali.setColumnWidth(1, 120)
         self.tree_credenziali.setColumnWidth(2, 60)
         self.tree_credenziali.setColumnWidth(3, 120)
         self.tree_credenziali.setColumnWidth(4, 150)
-        self.tree_credenziali.setColumnWidth(5, 120)
+        self.tree_credenziali.setColumnWidth(5, 200)
+        self.tree_credenziali.setColumnWidth(6, 120)
         self.tree_credenziali.setUniformRowHeights(False)
         self.tree_credenziali.setStyleSheet(self.tree_credenziali.styleSheet() + """
             QTreeWidget::item {
@@ -782,16 +775,42 @@ class MainWindow(QMainWindow):
         """Mostra informazioni sull'applicazione"""
         QMessageBox.information(
             self, "AccessCentral",
-            "<h3>AccessCentral v1.3.1</h3>"
-            "<p>Gestione completa di credenziali, servizi e risorse.</p>"
-            "<p><b>Funzionalità:</b></p>"
+            "<h3>AccessCentral v2.0</h3>"
+            "<p><b>Gestione avanzata di credenziali, servizi e risorse con sicurezza enterprise.</b></p>"
+            "<hr>"
+            "<p><b>🔐 Sicurezza:</b></p>"
+            "<ul>"
+            "<li>Master Password con crittografia AES-256</li>"
+            "<li>Codice di recupero password (16 caratteri)</li>"
+            "<li>Crittografia end-to-end per credenziali sensibili</li>"
+            "<li>Sistema a 3 tentativi con recupero guidato</li>"
+            "</ul>"
+            "<p><b>💾 Backup & Ripristino:</b></p>"
+            "<ul>"
+            "<li>Backup automatico programmabile</li>"
+            "<li>Backup manuali con timestamp</li>"
+            "<li>Ripristino completo da backup</li>"
+            "<li>Compressione ZIP con crittografia</li>"
+            "</ul>"
+            "<p><b>🚀 Funzionalità Principali:</b></p>"
             "<ul>"
             "<li>Gestione Clienti con PM e Consulenti</li>"
-            "<li>Rubrica Contatti per ogni cliente</li>"
-            "<li>Servizi e Credenziali organizzati</li>"
-            "<li>Integrazione VPN e RDP</li>"
+            "<li>Rubrica Contatti dedicata per cliente</li>"
+            "<li>Servizi e Credenziali con link web</li>"
+            "<li>Ricerca globale intelligente</li>"
+            "<li>Integrazione VPN (EXE + Windows)</li>"
+            "<li>Connessioni RDP automatizzate</li>"
             "<li>Import/Export CSV e Excel</li>"
+            "<li>Generatore password sicure</li>"
             "</ul>"
+            "<p><b>🎨 Interfaccia:</b></p>"
+            "<ul>"
+            "<li>Design moderno e intuitivo</li>"
+            "<li>Temi personalizzabili</li>"
+            "<li>Colori codificati per azioni</li>"
+            "</ul>"
+            "<hr>"
+            "<p style='text-align: center;'><i>© 2026 AccessCentral - Secure Access Management</i></p>"
         )
     
     def esporta_csv(self):
@@ -996,12 +1015,6 @@ class MainWindow(QMainWindow):
         has_vpn_win = bool(self.cliente_corrente.vpn_windows_name)
         self.btn_vpn_exe.setEnabled(has_vpn_exe)
         self.btn_vpn_windows.setEnabled(has_vpn_win)
-        
-        # Gestione bottone link
-        mostra_link = (self.servizio_corrente.tipo in ["CRM", "Web"] and 
-                      bool(self.servizio_corrente.link))
-        self.btn_apri_link.setVisible(mostra_link)
-        self.btn_apri_link.setEnabled(mostra_link)
     
     def carica_credenziali(self):
         """Carica le credenziali del servizio selezionato"""
@@ -1021,42 +1034,54 @@ class MainWindow(QMainWindow):
             item.setText(2, str(cred.porta) if cred.porta else "")
             item.setText(3, cred.password)  # Mostra password visibile
             item.setText(4, cred.note or "")
+            item.setText(5, cred.link or "")  # Mostra link
             item.setData(0, Qt.UserRole, cred.id)
             
-            # Aggiungi bottone RDP nella colonna Azione se servizio è RDP
-            if self.servizio_corrente.tipo == 'RDP':
-                # Container per centrare il bottone nella cella
-                widget_container = QWidget()
-                layout_container = QHBoxLayout(widget_container)
-                layout_container.setContentsMargins(5, 4, 5, 4)
-                layout_container.setSpacing(0)
-                layout_container.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-                
-                btn_rdp = QPushButton()
-                btn_rdp.setFixedSize(108, 30)
-                
+            # Aggiungi bottone azione nella colonna Azione
+            widget_container = QWidget()
+            layout_container = QHBoxLayout(widget_container)
+            layout_container.setContentsMargins(5, 4, 5, 4)
+            layout_container.setSpacing(0)
+            layout_container.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            
+            btn_azione = QPushButton()
+            btn_azione.setFixedSize(108, 30)
+            
+            # Logica: se ha link mostra Apri Link, altrimenti se ha host mostra Connetti
+            if cred.link and cred.link.strip():
+                # Ha un link -> pulsante Apri Link
+                btn_azione.setText("🌐 Apri Link")
+                btn_azione.setObjectName("btn_info")
+                btn_azione.setToolTip("Apri link nel browser")
+                btn_azione.clicked.connect(lambda checked, c=cred: self.apri_link_credenziale(c))
+            elif cred.host and cred.host.strip():
+                # Ha un host/IP -> pulsante Connetti RDP
                 if cred.rdp_configurata:
-                    btn_rdp.setText("🚀 RDP Conf")
-                    btn_rdp.setObjectName("btn_success")
-                    btn_rdp.setToolTip("Lancia RDP configurata")
-                    btn_rdp.clicked.connect(lambda checked, c=cred: self.lancia_rdp_configurata_diretta(c))
+                    btn_azione.setText("🚀 RDP Conf")
+                    btn_azione.setObjectName("btn_success")
+                    btn_azione.setToolTip("Lancia RDP configurata")
+                    btn_azione.clicked.connect(lambda checked, c=cred: self.lancia_rdp_configurata_diretta(c))
                 else:
-                    btn_rdp.setText("🖥️ Connetti")
-                    btn_rdp.setObjectName("btn_action")
-                    btn_rdp.setToolTip("Connetti RDP")
-                    btn_rdp.clicked.connect(lambda checked, c=cred: self.connetti_rdp_diretta(c))
-                
-                # Applica stile al bottone
-                btn_rdp.setStyleSheet(self.styleSheet() + """
-                    QPushButton {
-                        padding: 5px 8px;
-                        font-size: 9pt;
-                        margin: 0px;
-                    }
-                """)
-                layout_container.addWidget(btn_rdp, 0, Qt.AlignVCenter)
-                
-                self.tree_credenziali.setItemWidget(item, 5, widget_container)
+                    btn_azione.setText("🖥️ Connetti")
+                    btn_azione.setObjectName("btn_action")
+                    btn_azione.setToolTip("Connetti RDP")
+                    btn_azione.clicked.connect(lambda checked, c=cred: self.connetti_rdp_diretta(c))
+            else:
+                # Nessun link né host -> nessun bottone
+                self.tree_credenziali.setItemWidget(item, 6, None)
+                continue
+            
+            # Applica stile al bottone
+            btn_azione.setStyleSheet(self.styleSheet() + """
+                QPushButton {
+                    padding: 5px 8px;
+                    font-size: 9pt;
+                    margin: 0px;
+                }
+            """)
+            layout_container.addWidget(btn_azione, 0, Qt.AlignVCenter)
+            
+            self.tree_credenziali.setItemWidget(item, 6, widget_container)
     
     def connetti_rdp_diretta(self, credenziale: 'Credenziale'):
         """Connette a RDP con la credenziale specificata"""
@@ -1098,6 +1123,25 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Errore Critico", 
                                f"Errore durante il lancio RDP configurata:\n{str(e)}")
+    
+    def apri_link_credenziale(self, credenziale: 'Credenziale'):
+        """Apre il link della credenziale nel browser predefinito"""
+        try:
+            if not credenziale.link or not credenziale.link.strip():
+                QMessageBox.warning(self, "Attenzione", "Nessun link configurato per questa credenziale")
+                return
+            
+            # Apri il link nel browser predefinito
+            url = credenziale.link
+            # Aggiungi https:// se manca il protocollo
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url
+            
+            QDesktopServices.openUrl(QUrl(url))
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", 
+                               f"Errore durante l'apertura del link:\n{str(e)}")
     
     def credenziale_selezionata(self, item, column):
         """Gestisce la selezione di una credenziale"""
@@ -1222,17 +1266,11 @@ class MainWindow(QMainWindow):
         dialog = ServizioDialog(self)
         if dialog.exec_() == QDialog.Accepted:
             try:
-                # Prendi il link solo se il tipo è CRM o Web
-                link = ""
-                if dialog.tipo_combo.currentText() in ["CRM", "Web"]:
-                    link = dialog.link_edit.text().strip()
-                
                 self.credenziale_controller.crea_servizio(
                     cliente_id,
                     dialog.nome_edit.text(),
                     dialog.tipo_combo.currentText(),
-                    dialog.descrizione_edit.toPlainText(),
-                    link
+                    dialog.descrizione_edit.toPlainText()
                 )
                 self.carica_dati()
                 QMessageBox.information(self, "Successo", "Servizio creato con successo!")
@@ -1254,17 +1292,11 @@ class MainWindow(QMainWindow):
             dialog = ServizioDialog(self, self.servizio_corrente, duplica_mode=True)
             if dialog.exec_() == QDialog.Accepted:
                 try:
-                    # Prendi il link solo se il tipo è CRM o Web
-                    link = ""
-                    if dialog.tipo_combo.currentText() in ["CRM", "Web"]:
-                        link = dialog.link_edit.text().strip()
-                    
                     self.credenziale_controller.crea_servizio(
                         self.cliente_corrente.id,
                         dialog.nome_edit.text(),
                         dialog.tipo_combo.currentText(),
-                        dialog.descrizione_edit.toPlainText(),
-                        link
+                        dialog.descrizione_edit.toPlainText()
                     )
                     self.carica_dati()
                     QMessageBox.information(self, "Successo", "Servizio duplicato con successo!")
@@ -1283,17 +1315,11 @@ class MainWindow(QMainWindow):
         dialog = ServizioDialog(self, self.servizio_corrente)
         if dialog.exec_() == QDialog.Accepted:
             try:
-                # Prendi il link solo se il tipo è CRM o Web
-                link = ""
-                if dialog.tipo_combo.currentText() in ["CRM", "Web"]:
-                    link = dialog.link_edit.text().strip()
-                
                 self.credenziale_controller.modifica_servizio(
                     self.servizio_corrente.id,
                     dialog.nome_edit.text(),
                     dialog.tipo_combo.currentText(),
-                    dialog.descrizione_edit.toPlainText(),
-                    link
+                    dialog.descrizione_edit.toPlainText()
                 )
                 self.carica_dati()
                 QMessageBox.information(self, "Successo", "Servizio modificato con successo!")
@@ -1339,7 +1365,8 @@ class MainWindow(QMainWindow):
                     dialog.get_host_or_file(),  # Usa il metodo che restituisce host o file
                     porta,
                     dialog.note_edit.toPlainText(),
-                    dialog.rdp_configurata_check.isChecked()
+                    dialog.rdp_configurata_check.isChecked(),
+                    dialog.link_edit.text()
                 )
                 self.carica_credenziali()
                 QMessageBox.information(self, "Successo", "Credenziale creata con successo!")
@@ -1368,7 +1395,8 @@ class MainWindow(QMainWindow):
                     dialog.get_host_or_file(),  # Usa il metodo che restituisce host o file
                     porta,
                     dialog.note_edit.toPlainText(),
-                    dialog.rdp_configurata_check.isChecked()
+                    dialog.rdp_configurata_check.isChecked(),
+                    dialog.link_edit.text()
                 )
                 self.carica_credenziali()
                 QMessageBox.information(self, "Successo", "Credenziale duplicata con successo!")
@@ -1392,7 +1420,8 @@ class MainWindow(QMainWindow):
                     dialog.get_host_or_file(),  # Usa il metodo che restituisce host o file
                     porta,
                     dialog.note_edit.toPlainText(),
-                    dialog.rdp_configurata_check.isChecked()
+                    dialog.rdp_configurata_check.isChecked(),
+                    dialog.link_edit.text()
                 )
                 self.carica_credenziali()
                 QMessageBox.information(self, "Successo", "Credenziale modificata con successo!")
@@ -2134,26 +2163,12 @@ class ServizioDialog(QDialog):
                 self.tipo_combo.setCurrentIndex(index)
         layout.addRow("Tipo *:", self.tipo_combo)
         
-        # Link (solo per CRM e Web)
-        self.link_edit = QLineEdit()
-        self.link_edit.setPlaceholderText("https://...")
-        if self.servizio and hasattr(self.servizio, 'link') and self.servizio.link and not self.duplica_mode:
-            self.link_edit.setText(self.servizio.link)
-        self.link_label = QLabel("Link:")
-        layout.addRow(self.link_label, self.link_edit)
-        
         # Descrizione
         self.descrizione_edit = QTextEdit()
         self.descrizione_edit.setMaximumHeight(80)
         if self.servizio and self.servizio.descrizione and not self.duplica_mode:
             self.descrizione_edit.setPlainText(self.servizio.descrizione)
         layout.addRow("Descrizione:", self.descrizione_edit)
-        
-        # Connetti il segnale DOPO aver creato tutti i widget
-        self.tipo_combo.currentTextChanged.connect(self.on_tipo_changed)
-        
-        # Imposta visibilità iniziale del link
-        self.on_tipo_changed(self.tipo_combo.currentText())
         
         layout.addRow("", QLabel())  # Spaziatura
         
@@ -2323,6 +2338,13 @@ class CredenzialeDialog(QDialog):
         if self.credenziale and self.credenziale.note:
             self.note_edit.setPlainText(self.credenziale.note)
         layout.addRow("Note:", self.note_edit)
+        
+        # Link (per aprire nel browser)
+        self.link_edit = QLineEdit()
+        self.link_edit.setPlaceholderText("es: https://www.example.com")
+        if self.credenziale and self.credenziale.link:
+            self.link_edit.setText(self.credenziale.link)
+        layout.addRow("Link:", self.link_edit)
         
         layout.addRow("", QLabel())  # Spaziatura
         

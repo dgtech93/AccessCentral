@@ -230,6 +230,15 @@ class DatabaseManager:
                 cursor.execute("ALTER TABLE clienti ADD COLUMN vpn_procedure_dir TEXT")
                 print("Migrazione: Aggiunta colonna vpn_procedure_dir alla tabella clienti")
             
+            # Controlla se la colonna link esiste nella tabella credenziali
+            cursor.execute("PRAGMA table_info(credenziali)")
+            credenziali_link_columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'link' not in credenziali_link_columns:
+                # Aggiungi la colonna link alle credenziali
+                cursor.execute("ALTER TABLE credenziali ADD COLUMN link TEXT")
+                print("Migrazione: Aggiunta colonna link alla tabella credenziali")
+            
             conn.commit()
         except Exception as e:
             print(f"Errore durante la migrazione: {e}")

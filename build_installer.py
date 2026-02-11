@@ -41,13 +41,13 @@ def check_dependencies():
     dependencies = {
         'PyQt5': 'PyQt5',
         'cryptography': 'cryptography',
-        'PyInstaller': 'pyinstaller'
+        'PyInstaller': 'PyInstaller'
     }
     
     missing = []
     for package, import_name in dependencies.items():
         try:
-            __import__(import_name.lower().replace('-', '_'))
+            __import__(import_name)
             print(f"  ✓ {package} installato")
         except ImportError:
             print(f"  ✗ {package} NON installato")
