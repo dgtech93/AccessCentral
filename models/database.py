@@ -170,6 +170,46 @@ class DatabaseManager:
             )
         """)
         
+        # Tabella Template Credenziali (v2.1 extended)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS template_credenziali (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_servizio_id INTEGER NOT NULL,
+                username TEXT,
+                password TEXT,
+                host TEXT,
+                porta INTEGER,
+                dominio TEXT,
+                note TEXT,
+                creato_il TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (template_servizio_id) REFERENCES template_servizi(id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Tabella Template Cliente (v2.1 extended)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS template_cliente (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_template TEXT NOT NULL UNIQUE,
+                descrizione_cliente TEXT,
+                note_template TEXT,
+                creato_il TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modificato_il TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabella Template Cliente Servizi (v2.1 extended) - relazione N:M
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS template_cliente_servizi (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_cliente_id INTEGER NOT NULL,
+                template_servizio_id INTEGER NOT NULL,
+                FOREIGN KEY (template_cliente_id) REFERENCES template_cliente(id) ON DELETE CASCADE,
+                FOREIGN KEY (template_servizio_id) REFERENCES template_servizi(id) ON DELETE CASCADE,
+                UNIQUE(template_cliente_id, template_servizio_id)
+            )
+        """)
+        
         # Indici per migliorare le performance
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_contatti_cliente 
@@ -268,6 +308,15 @@ class DatabaseManager:
                 # Aggiungi la colonna link alle credenziali
                 cursor.execute("ALTER TABLE credenziali ADD COLUMN link TEXT")
                 print("Migrazione: Aggiunta colonna link alla tabella credenziali")
+            
+            # Verifica se la colonna link esiste in template_credenziali (v2.2)
+            cursor.execute("PRAGMA table_info(template_credenziali)")
+            template_credenziali_columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'link' not in template_credenziali_columns:
+                # Aggiungi la colonna link alle credenziali template
+                cursor.execute("ALTER TABLE template_credenziali ADD COLUMN link TEXT")
+                print("Migrazione v2.2: Aggiunta colonna link alla tabella template_credenziali")
             
             conn.commit()
         except Exception as e:

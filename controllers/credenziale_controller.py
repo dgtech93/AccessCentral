@@ -7,6 +7,8 @@ from models.database import DatabaseManager
 from models.servizio import Servizio
 from models.credenziale import Credenziale
 from models.template_servizio import TemplateServizio
+from models.template_credenziale import TemplateCredenziale
+from models.template_cliente import TemplateCliente
 
 
 class CredenzialeController:
@@ -319,11 +321,88 @@ class CredenzialeController:
     
     def crea_servizio_da_template(self, cliente_id: int, nome_servizio: str,
                                   template_id: int) -> int:
-        """Crea un servizio da un template"""
+        """Crea un servizio da un template (senza credenziali - v2.2 simplified)"""
         template = TemplateServizio.get_by_id(self.db, template_id)
         if not template:
             raise ValueError(f"Template con ID {template_id} non trovato")
         
-        return self.crea_servizio(cliente_id, nome_servizio, template.tipo,
-                                 template.descrizione, template.link)
-
+        # Crea il servizio con i dati del template
+        servizio_id = self.crea_servizio(cliente_id, nome_servizio, template.tipo,
+                                         template.descrizione, template.link)
+        
+        # Le credenziali vanno aggiunte manualmente dopo la creazione
+        return servizio_id
+    
+    # ===== GESTIONE TEMPLATE CREDENZIALI (v2.1 extended) =====
+    
+    def crea_template_credenziale(self, template_servizio_id: int, username: str = "",
+                                  password: str = "", host: str = "", porta: Optional[int] = None,
+                                  dominio: str = "", link: str = "", note: str = "") -> int:
+        """Crea una credenziale template per un template servizio"""
+        return TemplateCredenziale.create(self.db, template_servizio_id, username,
+                                         password, host, porta, dominio, link, note)
+    
+    def ottieni_credenziali_template(self, template_servizio_id: int) -> List[TemplateCredenziale]:
+        """Recupera tutte le credenziali di un template servizio"""
+        return TemplateCredenziale.get_by_template_servizio(self.db, template_servizio_id)
+    
+    def ottieni_credenziale_template(self, id: int) -> Optional[TemplateCredenziale]:
+        """Recupera una credenziale template per ID"""
+        return TemplateCredenziale.get_by_id(self.db, id)
+    
+    def modifica_template_credenziale(self, id: int, username: str = "", password: str = "",
+                                     host: str = "", porta: Optional[int] = None,
+                                     dominio: str = "", link: str = "", note: str = "") -> bool:
+        """Modifica una credenziale template"""
+        return TemplateCredenziale.update(self.db, id, username, password, host,
+                                         porta, dominio, link, note)
+    
+    def elimina_template_credenziale(self, id: int) -> bool:
+        """Elimina una credenziale template"""
+        return TemplateCredenziale.delete(self.db, id)
+    
+    # ===== GESTIONE TEMPLATE CLIENTE (v2.1 extended) =====
+    
+    def crea_template_cliente(self, nome_template: str, descrizione_cliente: str = "",
+                             note_template: str = "") -> int:
+        """Crea un nuovo template cliente"""
+        if not nome_template or not nome_template.strip():
+            raise ValueError("Il nome del template è obbligatorio")
+        
+        return TemplateCliente.create(self.db, nome_template.strip(),
+                                     descrizione_cliente.strip(), note_template.strip())
+    
+    def ottieni_tutti_template_cliente(self) -> List[TemplateCliente]:
+        """Recupera tutti i template cliente"""
+        return TemplateCliente.get_all(self.db)
+    
+    def ottieni_template_cliente(self, template_id: int) -> Optional[TemplateCliente]:
+        """Recupera un template cliente specifico"""
+        return TemplateCliente.get_by_id(self.db, template_id)
+    
+    def modifica_template_cliente(self, template_id: int, nome_template: str,
+                                 descrizione_cliente: str = "", note_template: str = "") -> bool:
+        """Modifica un template cliente"""
+        if not nome_template or not nome_template.strip():
+            raise ValueError("Il nome del template è obbligatorio")
+        
+        return TemplateCliente.update(self.db, template_id, nome_template.strip(),
+                                     descrizione_cliente.strip(), note_template.strip())
+    
+    def elimina_template_cliente(self, template_id: int) -> bool:
+        """Elimina un template cliente"""
+        return TemplateCliente.delete(self.db, template_id)
+    
+    def aggiungi_servizio_a_template_cliente(self, template_cliente_id: int,
+                                            template_servizio_id: int) -> int:
+        """Associa un template servizio a un template cliente"""
+        return TemplateCliente.add_servizio(self.db, template_cliente_id, template_servizio_id)
+    
+    def rimuovi_servizio_da_template_cliente(self, template_cliente_id: int,
+                                            template_servizio_id: int) -> bool:
+        """Rimuove un template servizio da un template cliente"""
+        return TemplateCliente.remove_servizio(self.db, template_cliente_id, template_servizio_id)
+    
+    def ottieni_servizi_template_cliente(self, template_cliente_id: int) -> List[TemplateServizio]:
+        """Recupera tutti i template servizio di un template cliente"""
+        return TemplateCliente.get_servizi(self.db, template_cliente_id)

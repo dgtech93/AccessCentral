@@ -25,6 +25,10 @@ from controllers.credenziale_controller import CredenzialeController
 from controllers.risorse_controller import RisorseController
 from utils.vpn_launcher import VPNLauncher
 from utils.rdp_launcher import RDPLauncher
+from views.template_dialogs import GestioneTemplateDialog, SelezionaTemplateDialog
+from views.template_cliente_dialogs import (GestioneTemplateClienteDialog, 
+                                            SelezionaTemplateClienteDialog)
+from views.allegati_dialog import AllegatiDialog
 
 
 class MainWindow(QMainWindow):
@@ -88,18 +92,22 @@ class MainWindow(QMainWindow):
         btn_layout_clienti = QHBoxLayout()
         btn_layout_clienti.setSpacing(8)
         self.btn_nuovo_cliente = QPushButton("➕ Nuovo")
+        self.btn_nuovo_cliente_template = QPushButton("📋 Da Template")  # v2.2
         self.btn_modifica_cliente = QPushButton("✏️ Modifica")
         self.btn_elimina_cliente = QPushButton("🗑️ Elimina")
         
         self.btn_nuovo_cliente.setObjectName("btn_primary")
+        self.btn_nuovo_cliente_template.setObjectName("btn_primary")  # v2.2
         self.btn_modifica_cliente.setObjectName("btn_secondary")
         self.btn_elimina_cliente.setObjectName("btn_danger")
         
         self.btn_nuovo_cliente.clicked.connect(self.nuovo_cliente)
+        self.btn_nuovo_cliente_template.clicked.connect(self.nuovo_cliente_da_template)  # v2.2
         self.btn_modifica_cliente.clicked.connect(self.modifica_cliente)
         self.btn_elimina_cliente.clicked.connect(self.elimina_cliente)
         
         btn_layout_clienti.addWidget(self.btn_nuovo_cliente)
+        btn_layout_clienti.addWidget(self.btn_nuovo_cliente_template)  # v2.2
         btn_layout_clienti.addWidget(self.btn_modifica_cliente)
         btn_layout_clienti.addWidget(self.btn_elimina_cliente)
         left_layout.addLayout(btn_layout_clienti)
@@ -633,6 +641,23 @@ class MainWindow(QMainWindow):
         azione_importa_backup = QAction("📥 Ripristina Backup...", self)
         azione_importa_backup.triggered.connect(self.ripristina_backup)
         menu_backup.addAction(azione_importa_backup)
+        
+        # Menu Gestione (v2.1)
+        menu_gestione = menubar.addMenu("Gestione")
+        
+        azione_template = QAction("📋 Gestione Template Servizi...", self)
+        azione_template.triggered.connect(self.apri_gestione_template)
+        menu_gestione.addAction(azione_template)
+        
+        azione_template_cliente = QAction("👥 Gestione Template Cliente...", self)
+        azione_template_cliente.triggered.connect(self.apri_gestione_template_cliente)
+        menu_gestione.addAction(azione_template_cliente)
+        
+        menu_gestione.addSeparator()
+        
+        azione_allegati_info = QAction("📎 Info Allegati", self)
+        azione_allegati_info.triggered.connect(self.mostra_info_allegati)
+        menu_gestione.addAction(azione_allegati_info)
         
         # Menu Risorse
         menu_risorse = menubar.addMenu("Risorse")
@@ -1196,6 +1221,49 @@ class MainWindow(QMainWindow):
             except ValueError as e:
                 QMessageBox.warning(self, "Errore", str(e))
     
+    def nuovo_cliente_da_template(self):
+        """Crea un nuovo cliente da un template (v2.2)"""
+        # Apre il dialog per selezionare un template cliente
+        dialog = SelezionaTemplateClienteDialog(self, self.credenziale_controller)
+        if dialog.exec_() == QDialog.Accepted:
+            template = dialog.template_selezionato
+            if not template:
+                return
+            
+            # Richiede il nome per il nuovo cliente
+            nome_cliente, ok = QInputDialog.getText(
+                self,
+                "Nome Cliente",
+                f"Inserisci il nome del nuovo cliente:\n(Template: {template.nome_template})",
+                text=""
+            )
+            
+            if not ok or not nome_cliente.strip():
+                return
+            
+            try:
+                # Crea il cliente completo dal template (cliente + servizi)
+                cliente_id = self.cliente_controller.crea_cliente_da_template(
+                    nome_cliente.strip(),
+                    template.id,
+                    self.credenziale_controller
+                )
+                
+                self.carica_dati()
+                
+                # Conta servizi creati
+                servizi = self.credenziale_controller.ottieni_servizi_template_cliente(template.id)
+                
+                QMessageBox.information(
+                    self,
+                    "Successo",
+                    f"Cliente '{nome_cliente}' creato con successo!\n\n"
+                    f"📋 Servizi aggiunti: {len(servizi)}\n"
+                    f"💡 Ricorda di aggiungere le credenziali per ogni servizio"
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Errore", f"Errore durante la creazione del cliente:\n{str(e)}")
+    
     def modifica_cliente(self):
         """Modifica il cliente selezionato"""
         if not self.cliente_corrente:
@@ -1622,6 +1690,9 @@ class MainWindow(QMainWindow):
         
         if data['tipo'] == 'cliente':
             azione_nuovo_servizio = menu.addAction("➕ Nuovo Servizio")
+            azione_da_template = menu.addAction("📋 Crea Servizio da Template...")
+            menu.addSeparator()
+            azione_allegati = menu.addAction("📎 Gestisci Allegati...")
             menu.addSeparator()
             azione_gestione_consulenti = menu.addAction("👥 Gestisci Consulenti")
             azione_rubrica = menu.addAction("📇 Rubrica Contatti")
@@ -1633,6 +1704,10 @@ class MainWindow(QMainWindow):
             
             if azione == azione_nuovo_servizio:
                 self.nuovo_servizio(data['id'])
+            elif azione == azione_da_template:
+                self.nuovo_servizio_da_template(data['id'])
+            elif azione == azione_allegati:
+                self.apri_gestione_allegati(data['id'])
             elif azione == azione_gestione_consulenti:
                 self.gestisci_consulenti_cliente(data['id'])
             elif azione == azione_rubrica:
@@ -1646,6 +1721,9 @@ class MainWindow(QMainWindow):
         
         elif data['tipo'] == 'servizio':
             azione_duplica = menu.addAction("📋 Duplica Servizio")
+            menu.addSeparator()
+            azione_allegati = menu.addAction("📎 Gestisci Allegati Cliente...")
+            menu.addSeparator()
             azione_modifica = menu.addAction("✏️ Modifica Servizio")
             azione_elimina = menu.addAction("🗑️ Elimina Servizio")
             
@@ -1655,6 +1733,8 @@ class MainWindow(QMainWindow):
                 self.servizio_corrente = self.credenziale_controller.ottieni_servizio(data['id'])
                 self.cliente_corrente = self.cliente_controller.ottieni_cliente(data['cliente_id'])
                 self.duplica_servizio()
+            elif azione == azione_allegati:
+                self.apri_gestione_allegati(data['cliente_id'])
             elif azione == azione_modifica:
                 self.servizio_corrente = self.credenziale_controller.ottieni_servizio(data['id'])
                 self.modifica_servizio()
@@ -1927,6 +2007,94 @@ class MainWindow(QMainWindow):
                 self.close()
             else:
                 QMessageBox.critical(self, "Errore Ripristino", messaggio)
+    
+    # ===== GESTIONE TEMPLATE E ALLEGATI (v2.1) =====
+    
+    def apri_gestione_template(self):
+        """Apre il dialog di gestione template servizi"""
+        dialog = GestioneTemplateDialog(self, self.credenziale_controller)
+        dialog.exec_()
+    
+    def apri_gestione_template_cliente(self):
+        """Apre il dialog di gestione template cliente (v2.2)"""
+        dialog = GestioneTemplateClienteDialog(self, self.credenziale_controller)
+        if dialog.exec_() == QDialog.Accepted:
+            # Refresh della lista clienti se necessario
+            self.carica_dati()
+    
+    def nuovo_servizio_da_template(self, cliente_id: int):
+        """Crea un nuovo servizio da un template"""
+        # Apre il dialog per selezionare un template
+        dialog = SelezionaTemplateDialog(self, self.credenziale_controller)
+        if dialog.exec_() == QDialog.Accepted:
+            template = dialog.template_selezionato
+            if not template:
+                return
+            
+            # Crea il servizio dal template
+            try:
+                servizio_id = self.credenziale_controller.crea_servizio_da_template(
+                    cliente_id,
+                    template.nome_template,
+                    template.id
+                )
+                self.carica_dati()
+                QMessageBox.information(
+                    self, 
+                    "Successo", 
+                    f"Servizio '{template.nome_template}' creato con successo!"
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Errore", f"Errore creazione servizio:\n{e}")
+    
+    def apri_gestione_allegati(self, cliente_id: int):
+        """Apre il dialog di gestione allegati per un cliente"""
+        cliente = self.cliente_controller.ottieni_cliente(cliente_id)
+        if not cliente:
+            QMessageBox.warning(self, "Errore", "Cliente non trovato")
+            return
+        
+        dialog = AllegatiDialog(self, cliente_id, cliente.nome)
+        dialog.exec_()
+    
+    def mostra_info_allegati(self):
+        """Mostra informazioni sugli allegati"""
+        from models.allegato import Allegato
+        import os
+        
+        # Conta allegati totali
+        db = DatabaseManager()
+        conn = db.connect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*), SUM(dimensione_kb) FROM allegati")
+        count, total_size_kb = cursor.fetchone()
+        
+        if count is None:
+            count = 0
+        if total_size_kb is None:
+            total_size_kb = 0
+        
+        total_mb = total_size_kb / 1024
+        
+        # Verifica directory
+        docs_dir = os.path.abspath(Allegato.BASE_DIR)
+        dir_exists = os.path.exists(docs_dir)
+        
+        info_html = f"""
+        <h3>📎 Informazioni Allegati</h3>
+        <p><b>Allegati totali:</b> {count}</p>
+        <p><b>Spazio occupato:</b> {total_mb:.2f} MB</p>
+        <p><b>Limite per file:</b> {Allegato.MAX_SIZE_MB} MB</p>
+        <hr>
+        <p><b>Directory storage:</b></p>
+        <p style='font-family: monospace; background: #f0f0f0; padding: 5px;'>{docs_dir}</p>
+        <p><b>Stato directory:</b> {'✅ Esistente' if dir_exists else '❌ Non ancora creata'}</p>
+        <hr>
+        <p><i>Gli allegati vengono organizzati per cliente nella directory documenti/</i></p>
+        """
+        
+        db.close()
+        self.mostra_dialog_con_link("Info Allegati", info_html)
     
     def closeEvent(self, event):
         """Chiude il database quando si chiude l'applicazione"""

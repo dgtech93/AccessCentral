@@ -6,6 +6,7 @@ from typing import List, Optional
 from models.database import DatabaseManager
 from models.cliente import Cliente
 from models.servizio import Servizio
+from models.template_cliente import TemplateCliente
 
 
 class ClienteController:
@@ -153,3 +154,37 @@ class ClienteController:
         """
         servizi = Servizio.get_by_cliente(self.db, cliente_id)
         return len(servizi)
+    
+    def crea_cliente_da_template(self, nome_cliente: str, template_cliente_id: int,
+                                credenziale_controller) -> int:
+        """
+        Crea un cliente completo da un template (con servizi e credenziali)
+        
+        Args:
+            nome_cliente: Nome del nuovo cliente
+            template_cliente_id: ID del template cliente da usare
+            credenziale_controller: Controller per creazione servizi (per evitare import circolare)
+            
+        Returns:
+            ID del cliente creato
+        """
+        # Recupera il template
+        template = TemplateCliente.get_by_id(self.db, template_cliente_id)
+        if not template:
+            raise ValueError(f"Template cliente con ID {template_cliente_id} non trovato")
+        
+        # Crea il cliente
+        cliente_id = self.crea_cliente(nome_cliente, template.descrizione_cliente)
+        
+        # Recupera i template servizi associati
+        template_servizi = TemplateCliente.get_servizi(self.db, template_cliente_id)
+        
+        # Crea ogni servizio dal suo template (con credenziali)
+        for template_servizio in template_servizi:
+            credenziale_controller.crea_servizio_da_template(
+                cliente_id,
+                template_servizio.nome_template,
+                template_servizio.id
+            )
+        
+        return cliente_id

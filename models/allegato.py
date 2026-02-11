@@ -18,7 +18,7 @@ class Allegato:
     def __init__(self, id: Optional[int] = None, cliente_id: int = 0,
                  nome_file: str = "", nome_originale: str = "",
                  percorso_file: str = "", dimensione_kb: int = 0,
-                 tipo_mime: str = "", descrizione: str = ""):
+                 tipo_mime: str = "", descrizione: str = "", creato_il: str = ""):
         self.id = id
         self.cliente_id = cliente_id
         self.nome_file = nome_file
@@ -27,6 +27,7 @@ class Allegato:
         self.dimensione_kb = dimensione_kb
         self.tipo_mime = tipo_mime
         self.descrizione = descrizione
+        self.creato_il = creato_il
     
     @staticmethod
     def _get_storage_dir(cliente_id: int) -> str:
@@ -111,7 +112,8 @@ class Allegato:
                 percorso_file=row['percorso_file'],
                 dimensione_kb=row['dimensione_kb'] if 'dimensione_kb' in row.keys() else 0,
                 tipo_mime=row['tipo_mime'] if 'tipo_mime' in row.keys() else "",
-                descrizione=row['descrizione'] if 'descrizione' in row.keys() else ""
+                descrizione=row['descrizione'] if 'descrizione' in row.keys() else "",
+                creato_il=row['creato_il'] if 'creato_il' in row.keys() else ""
             )
             allegati.append(allegato)
         
@@ -133,7 +135,8 @@ class Allegato:
                 percorso_file=row['percorso_file'],
                 dimensione_kb=row['dimensione_kb'] if 'dimensione_kb' in row.keys() else 0,
                 tipo_mime=row['tipo_mime'] if 'tipo_mime' in row.keys() else "",
-                descrizione=row['descrizione'] if 'descrizione' in row.keys() else ""
+                descrizione=row['descrizione'] if 'descrizione' in row.keys() else "",
+                creato_il=row['creato_il'] if 'creato_il' in row.keys() else ""
             )
         return None
     
