@@ -140,6 +140,36 @@ class DatabaseManager:
             )
         """)
         
+        # Tabella Template Servizi (v2.1)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS template_servizi (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_template TEXT NOT NULL UNIQUE,
+                tipo TEXT NOT NULL,
+                descrizione TEXT,
+                link TEXT,
+                note_template TEXT,
+                creato_il TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modificato_il TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabella Allegati Cliente (v2.1)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS allegati (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cliente_id INTEGER NOT NULL,
+                nome_file TEXT NOT NULL,
+                nome_originale TEXT NOT NULL,
+                percorso_file TEXT NOT NULL,
+                dimensione_kb INTEGER,
+                tipo_mime TEXT,
+                descrizione TEXT,
+                creato_il TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (cliente_id) REFERENCES clienti(id) ON DELETE CASCADE
+            )
+        """)
+        
         # Indici per migliorare le performance
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_contatti_cliente 

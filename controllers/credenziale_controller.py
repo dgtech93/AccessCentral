@@ -6,6 +6,7 @@ from typing import List, Optional
 from models.database import DatabaseManager
 from models.servizio import Servizio
 from models.credenziale import Credenziale
+from models.template_servizio import TemplateServizio
 
 
 class CredenzialeController:
@@ -273,3 +274,56 @@ class CredenzialeController:
         """
         credenziali = Credenziale.get_by_servizio(self.db, servizio_id)
         return len(credenziali)
+    
+    # ===== GESTIONE TEMPLATE SERVIZI (v2.1) =====
+    
+    def crea_template(self, nome_template: str, tipo: str, descrizione: str = "",
+                     link: str = "", note_template: str = "") -> int:
+        """Crea un nuovo template servizio"""
+        if not nome_template or not nome_template.strip():
+            raise ValueError("Il nome del template è obbligatorio")
+        
+        if not tipo or tipo not in Servizio.TIPI_DISPONIBILI:
+            raise ValueError(f"Tipo di servizio non valido: {tipo}")
+        
+        return TemplateServizio.create(self.db, nome_template.strip(), tipo,
+                                      descrizione.strip(), link.strip(), note_template.strip())
+    
+    def ottieni_tutti_template(self) -> List[TemplateServizio]:
+        """Recupera tutti i template"""
+        return TemplateServizio.get_all(self.db)
+    
+    def ottieni_template_per_tipo(self, tipo: str) -> List[TemplateServizio]:
+        """Recupera template filtrati per tipo"""
+        return TemplateServizio.get_by_tipo(self.db, tipo)
+    
+    def ottieni_template(self, template_id: int) -> Optional[TemplateServizio]:
+        """Recupera un template specifico"""
+        return TemplateServizio.get_by_id(self.db, template_id)
+    
+    def modifica_template(self, template_id: int, nome_template: str, tipo: str,
+                         descrizione: str = "", link: str = "", note_template: str = "") -> bool:
+        """Modifica un template"""
+        if not nome_template or not nome_template.strip():
+            raise ValueError("Il nome del template è obbligatorio")
+        
+        if not tipo or tipo not in Servizio.TIPI_DISPONIBILI:
+            raise ValueError(f"Tipo di servizio non valido: {tipo}")
+        
+        return TemplateServizio.update(self.db, template_id, nome_template.strip(),
+                                      tipo, descrizione.strip(), link.strip(), note_template.strip())
+    
+    def elimina_template(self, template_id: int) -> bool:
+        """Elimina un template"""
+        return TemplateServizio.delete(self.db, template_id)
+    
+    def crea_servizio_da_template(self, cliente_id: int, nome_servizio: str,
+                                  template_id: int) -> int:
+        """Crea un servizio da un template"""
+        template = TemplateServizio.get_by_id(self.db, template_id)
+        if not template:
+            raise ValueError(f"Template con ID {template_id} non trovato")
+        
+        return self.crea_servizio(cliente_id, nome_servizio, template.tipo,
+                                 template.descrizione, template.link)
+

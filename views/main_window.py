@@ -803,12 +803,6 @@ class MainWindow(QMainWindow):
             "<li>Import/Export CSV e Excel</li>"
             "<li>Generatore password sicure</li>"
             "</ul>"
-            "<p><b>🎨 Interfaccia:</b></p>"
-            "<ul>"
-            "<li>Design moderno e intuitivo</li>"
-            "<li>Temi personalizzabili</li>"
-            "<li>Colori codificati per azioni</li>"
-            "</ul>"
             "<hr>"
             "<p style='text-align: center;'><i>© 2026 AccessCentral - Secure Access Management</i></p>"
         )

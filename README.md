@@ -1,10 +1,10 @@
-# AccessCentral v2.0
+# AccessCentral v2.1
 
-Applicazione desktop completa per la gestione di credenziali, servizi, risorse e contatti aziendali con **sistema di sicurezza avanzato** e **backup automatico**.
+Applicazione desktop completa per la gestione di credenziali, servizi, risorse e contatti aziendali con **sistema di sicurezza avanzato**, **backup automatico**, **template servizi** e **allegati cliente**.
 
 ## 🌟 Caratteristiche Principali
 
-### 🔐 Sicurezza (NEW v2.0)
+### 🔐 Sicurezza (v2.0)
 - **Master Password**: Protezione accesso all'applicazione con autenticazione
 - **Crittografia AES**: Tutte le password vengono criptate con Fernet (AES-256)
 - **Generatore Password**: Crea password sicure con opzioni personalizzabili
@@ -12,18 +12,34 @@ Applicazione desktop completa per la gestione di credenziali, servizi, risorse e
 - **3 Tentativi**: Limite di tentativi di accesso con blocco automatico
 - **PBKDF2HMAC**: Derivazione chiavi con 100.000 iterazioni
 
-### 💾 Backup e Ripristino (NEW v2.0)
+### 💾 Backup e Ripristino (v2.0)
 - **Backup Automatico**: Backup programmato del database
 - **Gestione Completa**: Crea, ripristina, esporta ed elimina backup
 - **Configurabile**: Imposta intervallo e numero massimo di backup
 - **Pulizia Automatica**: Rimozione backup obsoleti
 - **Backup di Sicurezza**: Creazione automatica prima del ripristino
 
-### 🔍 Ricerca Globale (NEW v2.0)
+### 🔍 Ricerca Globale (v2.0)
 - **Barra Ricerca**: Ricerca in tempo reale
 - **Multi-Entità**: Cerca tra clienti, servizi e credenziali
 - **Smart Filter**: Mostra tutti i servizi quando si filtra per cliente
 - **Evidenziazione**: Risultati evidenziati nella struttura ad albero
+
+### 📋 Template Servizi (NEW v2.1)
+- **Template Predefiniti**: Crea servizi rapidamente da template preconfigurati
+- **Creazione Rapida**: Genera nuovi servizi con un click usando template
+- **Gestione Centralizzata**: Menu dedicato per creare, modificare ed eliminare template
+- **Filtro per Tipo**: Template organizzati per tipo servizio (RDP, CRM, Web, etc.)
+- **Risparmio Tempo**: Elimina inserimenti ripetitivi per servizi ricorrenti
+
+### 📎 Allegati Cliente (NEW v2.1)
+- **Carica Documenti**: Allega file ai clienti (contratti, documentazione, screenshot)
+- **Storage Organizzato**: File salvati in `documenti/{cliente_id}/`
+- **Gestione File**: Apri, scarica, elimina allegati
+- **Limite Sicurezza**: 10 MB massimo per file
+- **Multi-Formato**: PDF, Office, immagini, archivi ZIP/RAR
+- **Icone Visive**: Riconoscimento immediato tipo file
+- **Statistiche**: Visualizza dimensione totale allegati per cliente
 
 ### Gestione Clienti Avanzata
 - **Organizzazione Clienti**: Gestisci i tuoi clienti con descrizioni dettagliate
@@ -67,11 +83,18 @@ Applicazione desktop completa per la gestione di credenziali, servizi, risorse e
 - **contatti**: Rubrica contatti per ogni cliente
 - **servizi**: Servizi per cliente (tipizzati)
 - **credenziali**: Credenziali per ogni servizio
+- **template_servizi** (NEW v2.1): Template servizi predefiniti
+- **allegati** (NEW v2.1): File allegati ai clienti
 
 ### Relazioni
 ```
 pm (1) ----< (N) clienti
 clienti (N) ----< (N) consulenti
+clienti (1) ----< (N) contatti
+clienti (1) ----< (N) servizi
+clienti (1) ----< (N) allegati
+servizi (1) ----< (N) credenziali
+```
 clienti (1) ----< (N) contatti
 clienti (1) ----< (N) servizi
 servizi (1) ----< (N) credenziali
@@ -94,7 +117,9 @@ CredenzialiSuite/
 │   ├── credenziale.py          # Modello Credenziale
 │   ├── pm.py                   # Modello Project Manager
 │   ├── consulente.py           # Modello Consulente
-│   └── contatto.py             # Modello Contatto
+│   ├── contatto.py             # Modello Contatto
+│   ├── template_servizio.py    # 🆕 Modello Template Servizio (v2.1)
+│   └── allegato.py             # 🆕 Modello Allegato (v2.1)
 │
 ├── views/                       # Interfaccia grafica (PyQt5)
 │   ├── main_window.py          # Finestra principale e dialogs
@@ -105,19 +130,25 @@ CredenzialiSuite/
 │
 ├── controllers/                 # Logica business
 │   ├── cliente_controller.py   # Controller clienti/servizi
-│   ├── credenziale_controller.py # Controller credenziali (con crittografia)
+│   ├── credenziale_controller.py # Controller credenziali (con crittografia + template v2.1)
 │   └── risorse_controller.py   # Controller PM/Consulenti/Contatti
 │
 └── utils/                       # Utility
     ├── vpn_launcher.py         # Gestione VPN
     ├── rdp_launcher.py         # Gestione connessioni RDP
-    ├── crypto_manager.py       # 🆕 Crittografia password (Fernet, PBKDF2, SHA256)
-    └── backup_manager.py       # 🆕 Backup automatico e gestione
+    ├── crypto_manager.py       # Crittografia password (Fernet, PBKDF2, SHA256)
+    └── backup_manager.py       # Backup automatico e gestione
 
 File Configurazione:
 ├── security_config.json         # Salt + hash master password + recovery code
 ├── backup_config.json          # Config backup automatico
 └── credenziali_suite.db        # Database SQLite con password criptate
+
+Directory Storage:
+└── documenti/                   # 🆕 Allegati clienti (v2.1)
+    ├── {cliente_1}/            # File allegati cliente 1
+    ├── {cliente_2}/            # File allegati cliente 2
+    └── ...
 ```
 
 ### Flusso Autenticazione (v2.0)
