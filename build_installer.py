@@ -1,5 +1,5 @@
 """
-Script per creare l'installer di AccessCentral v2.0
+Script per creare l'installer di AccessCentral v2.2
 Genera un eseguibile standalone per Windows con PyInstaller
 """
 
@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-VERSION = "2.0.0"
+VERSION = "2.2.0"
 APP_NAME = "AccessCentral"
 
 def cleanup_build_folders():
