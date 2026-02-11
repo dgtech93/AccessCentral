@@ -77,5 +77,8 @@ version_info.txt
 installer_AccessCentral_*/
 AccessCentral_v*_Windows_Installer.zip
 
+# Inno Setup output
+Output/
+
 # Installer output
 installer_output/
