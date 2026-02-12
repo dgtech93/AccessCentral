@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 APP_NAME = "AccessCentral"
 
 def cleanup_build_folders():
@@ -82,6 +82,10 @@ a = Analysis(
         'cryptography.hazmat.primitives.kdf.pbkdf2',
         'cryptography.hazmat.backends',
         'cryptography.fernet',
+        'pandas',
+        'openpyxl',
+        'openpyxl.cell',
+        'openpyxl.styles',
     ],
     hookspath=[],
     hooksconfig={{}},
@@ -90,7 +94,6 @@ a = Analysis(
         'matplotlib',
         'numpy',
         'scipy',
-        'pandas',
         'PIL',
         'tkinter',
     ],

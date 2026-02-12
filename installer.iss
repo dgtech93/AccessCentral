@@ -1,8 +1,8 @@
 ; Script generato con Inno Setup
-; AccessCentral v2.2 - Installer Windows
+; AccessCentral v2.2.1 - Installer Windows
 
 #define MyAppName "AccessCentral"
-#define MyAppVersion "2.2.0"
+#define MyAppVersion "2.2.1"
 #define MyAppPublisher "DiegoG Corporate"
 #define MyAppExeName "AccessCentral.exe"
 #define MyAppAssocName MyAppName + " File"
@@ -22,7 +22,7 @@ LicenseFile=
 InfoBeforeFile=
 InfoAfterFile=
 OutputDir=installer_output
-OutputBaseFilename=AccessCentral_v2.2.0_Setup
+OutputBaseFilename=AccessCentral_v2.2.1_Setup
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -54,6 +54,7 @@ Source: "credenziali_suite.db"; DestDir: "{app}"; Flags: ignoreversion onlyifdoe
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "RELEASE_NOTES_v2.0.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "RELEASE_NOTES_v2.2.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "RELEASE_NOTES_v2.2.1.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "BUILD_README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Icona (se esiste)
